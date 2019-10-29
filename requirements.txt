@@ -1,0 +1,4 @@
+prettytable==0.7.2
+gevent==1.4.0
+selenium==3.141.0
+beautifulsoup4==4.8.1
