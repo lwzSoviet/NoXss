@@ -1,7 +1,7 @@
 #!/usr/bin/python2.7
 # -*- encoding: utf-8 -*-
 """
-    @Description: Utils
+    @Description: Common Utils.
     
     ~~~~~~ 
     @Author  : longwenzhang
@@ -76,7 +76,7 @@ def get_domain_from_url(url):
             domain = url.split('//', 1)[1].split('/', 1)[0]
         except IndexError, e:
             print 'Get domain error,%s,%s' % (url, e)
-    # http://a.jd.com?a=adsd
+    # http://a.b.com?a=adsd
     elif re.search(r'://.*?\?',url):
         try:
             domain = url.split('//', 1)[1].split('?', 1)[0]

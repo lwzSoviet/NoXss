@@ -1,6 +1,6 @@
 #!/usr/bin/env python  
 # -*- coding: utf-8 -*-
-"""do some work about cookie"""
+"""Do some work about cookie"""
 import os
 import re
 import time

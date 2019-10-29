@@ -15,7 +15,7 @@ from util import print_info, save, gen_id, get_domain_from_url
 if __name__=="__main__":
     parser = argparse.ArgumentParser(prog="start.py",description='scan xss from url or file.',usage='start.py --url=url --save')
     parser.add_argument('-v','--version', action='version', version='%(prog)s 1.0')
-    parser.add_argument('--init', action='store_true', help='init something.')
+    parser.add_argument('--check', action='store_true', help='check if browser is installed correctly.')
     parser.add_argument('--url','-u',help='the target site of scan.')
     parser.add_argument('--id',action='store',help='rescan by task id.')
     parser.add_argument('-f','--file',help='scan urls from text file.')
@@ -26,6 +26,9 @@ if __name__=="__main__":
     parser.add_argument('--save',action='store_true',help='save result to json file.')
     banner()
     args=parser.parse_args()
+    if args.check:
+        from  check import check
+        check()
     # default
     url,file,burp,cookie='','','',''
     if args.url:
@@ -39,7 +42,7 @@ if __name__=="__main__":
     if args.browser:
         browser=args.browser
     # default use 4 processes if many urls
-    num=2
+    num=4
     if args.process:
         num=args.process
     if args.cookie:
@@ -51,11 +54,11 @@ if __name__=="__main__":
         elif url:
             scope_url=url
         domain=get_domain_from_url(scope_url)
-        # if is_ip(scope_url):
-        #     save_cookie_ip(args.cookie, domain)
-        # else:
-        #     from cookie import save_cookie
-        #     save_cookie(args.cookie, domain)
+        if is_ip(scope_url):
+            save_cookie_ip(args.cookie, domain)
+        else:
+            from cookie import save_cookie
+            save_cookie(args.cookie, domain)
     if url or file or burp:
         if args.id:
             id=args.id

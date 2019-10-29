@@ -1,7 +1,7 @@
 #!/usr/bin/python2.7
 # -*- encoding: utf-8 -*-
 """
-    @Description: 
+    @Description: print logo.
     
     ~~~~~~ 
     @Author  : longwenzhang

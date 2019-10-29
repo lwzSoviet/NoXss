@@ -867,7 +867,7 @@ class Engine(object):
                                 url_list.append(i)
                         url_list = self.deduplicate(url_list)
                         # test 10000 urls
-                        url_list = url_list[5000:5500]
+                        # url_list = url_list[:10000]
                 else:
                     print '%s not exists!' % file
             # self.multideduplicate(url_list)
