@@ -14,3 +14,6 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 COOKIE_DIR = os.path.join(BASE_DIR, 'cookie')
 RESULT_DIR = os.path.join(BASE_DIR, 'result')
 TRAFFIC_DIR =os.path.join(BASE_DIR, 'traffic')
+
+# save request error
+REQUEST_ERROR=[]

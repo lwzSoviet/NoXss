@@ -17,7 +17,7 @@ import json
 import re
 import urlparse
 from selenium.common.exceptions import TimeoutException, UnexpectedAlertPresentException
-from config import TRAFFIC_DIR
+from config import TRAFFIC_DIR, REQUEST_ERROR
 from cookie import get_cookie
 from model import Case, HttpRequest, HttpResponse
 from util import change_by_param, list2dict, print_info, chrome, phantomjs, getResponseHeaders, check_type, add_cookie, \
@@ -69,6 +69,7 @@ class Traffic_generator(Process):
             resp = urllib2.urlopen(req, timeout=2)
         except urllib2.URLError, e:
             print e
+            REQUEST_ERROR.append(('gen_traffic',req))
         else:
             resp_headers = resp.headers.headers
             resp_headers_dict = list2dict(resp_headers)
@@ -504,8 +505,6 @@ class Verify():
                             splited = url.split('/', 3)
                             path = '/'.join(splited)
                             blocked_urls.append(path)
-                    except Exception, e:
-                        print e
                     else:
                         try:
                             page_source = browser.page_source
@@ -833,6 +832,11 @@ class Engine(object):
                 cPickle.dump(saved_traffic_list, traffic_f)
                 print_info('Traffic of %s has been saved to %s.' % (self.id, traffic_path))
 
+    def save_request_exception(self):
+        if len(REQUEST_ERROR)>0:
+            with open(self.get_traffic_path(self.id).replace('.traffic','.error'),'w')as f:
+                cPickle.dump(REQUEST_ERROR,f)
+
     def multideduplicate(self,url_list):
         """
         Multiprocess deduplicate.
@@ -924,10 +928,12 @@ class Engine(object):
             if self.browser:
                 # verify
                 Verify.verify_with_browser(self.browser,case_list,self.process,self.cookie)
+                self.save_request_exception()
                 return openner_result
             else:
                 # verify,async
                 verify_result = Verify.verify_async(case_list)
+                self.save_request_exception()
                 return verify_result
 
 if __name__=='__main__':

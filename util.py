@@ -19,7 +19,7 @@ from urllib2 import URLError
 from prettytable import PrettyTable
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
-from config import RESULT_DIR
+from config import RESULT_DIR, REQUEST_ERROR
 from cookie import get_cookie, get_cookie_ip, is_ip, get_cookies_list
 
 proxy_info={'host':'127.0.0.1',
@@ -196,6 +196,7 @@ def make_request(method,url,headers,body):
             return resp
         except URLError, e:
             print "make request error!%s........." % e.reason
+            REQUEST_ERROR.append(('make_request',req))
         except socket.timeout:
             print 'make request error!socket time out!'
     elif method=='POST':
@@ -205,6 +206,7 @@ def make_request(method,url,headers,body):
             return resp
         except URLError, e:
             print "make request error!%s........." % e.reason
+            REQUEST_ERROR.append(('make_request',req))
         except socket.timeout:
             print 'make request error!socket time out!'
 
