@@ -30,6 +30,8 @@ try:
 except ImportError, e:
     print e
 
+burp_traffic = []
+
 manager = Manager()
 case_list=manager.list()
 openner_result = manager.list()
@@ -701,11 +703,15 @@ class Engine(object):
                     req_headers = {}
                     resp_headers = {}
                     code = ''
+                    request,response='',''
                     for child2 in child:
                         if child2.tag == 'method':
                             method = child2.text
                         if child2.tag == 'url':
                             url = child2.text
+                            # static url in burp
+                            if Filter.static_reg.search(url):
+                                break
                         if child2.tag == 'status':
                             code = child2.text
                         if child2.tag == 'request':
@@ -733,7 +739,10 @@ class Engine(object):
                                         resp_headers[header_key] = header_value
                                 data = resp_text.split('\r\n\r\n', 1)[1]
                                 response = HttpResponse(code, reason, resp_headers, data)
-                    traffic_queue.put((request,response))
+                    if request and response:
+                        if (request.method=='GET' and '?' in request.url) or (request.method=='POST' and request.body):
+                            burp_traffic.append((request,response))
+                            traffic_queue.put((request,response))
             self.send_end_sig()
         else:
             print '%s not exists!'%self.burp
@@ -865,6 +874,10 @@ class Engine(object):
             self.put_queue()
         elif self.burp:
             self.put_burp_to_trafficqueue()
+            # save burp traffic
+            if burp_traffic:
+                with open(traffic_path,'w')as f:
+                    cPickle.dump(burp_traffic,f)
         else:
             if self.url != '':
                 url_list=[self.url]
