@@ -65,18 +65,14 @@ class Traffic_generator(Process):
             print 'Visit %s'%url
             req = urllib2.Request(url=url, headers=self.DEFAULT_HEADER)
             resp = urllib2.urlopen(req, timeout=2)
-        except Exception, e:
+        except urllib2.URLError, e:
             print e
         else:
             resp_headers = resp.headers.headers
             resp_headers_dict = list2dict(resp_headers)
-            try:
-                response = HttpResponse(code=str(resp.code), reason=resp.msg, headers=resp_headers_dict,
-                                        data=resp.read())
-            except Exception, e:
-                print e
-            else:
-                return (request, response)
+            response = HttpResponse(code=str(resp.code), reason=resp.msg, headers=resp_headers_dict,
+                                    data=resp.read())
+            return (request, response)
 
     def run(self):
         import gevent
@@ -126,6 +122,21 @@ class Detector():
             return result_dict
 
     @staticmethod
+    def parse_by_token(data):
+        result={}
+        split_symbol=','
+        data=re.sub(r'[\\\'\"{}\[\]]','',data)
+        if ',' in data:
+            groups=data.split(split_symbol)
+            for i in groups:
+                if ':' in i:
+                    k,v=i.split(':')[0],i.split(':')[1]
+                    result[k]=v
+            return result
+        else:
+            print 'Can\'t parse body:\n%s'%data
+
+    @staticmethod
     def detect_param(request):
         """
         :param request: httprequest
@@ -146,6 +157,13 @@ class Detector():
             elif re.search(r'^.*?={.*?}$', body):
                 body = re.search(r'^.*?=({.*?})$', body).group()
                 param_dict = Detector.detect_json(body)
+            # ignore
+            elif request.get_header('Content-Type') and 'multipart/form-data; boundary=' in request.get_header('Content-Type'):
+                pass
+            elif '&' not in body:
+                param_dict=Detector.parse_by_token(body)
+                if param_dict:
+                    return param_dict
             # a=1&b=2
             else:
                 try:
@@ -154,8 +172,8 @@ class Detector():
                         for i in tmp:
                             try:
                                 param, value = i.split('=')[0], i.split('=')[1]
-                            except IndexError, e:
-                                print e
+                            except IndexError:
+                                pass
                             else:
                                 if param not in param_dict:
                                     param_dict[param] = value
@@ -163,7 +181,7 @@ class Detector():
                         tmp = body.split['=']
                         param_dict = tmp[0], tmp[1]
                 except TypeError, e:
-                    print e
+                    print 'Json is not valid:%s'%body
         return param_dict
 
     @staticmethod
@@ -254,7 +272,8 @@ class Detector():
                 else:
                     position.append('html')
         else:
-            print '30x redirect'
+            pass
+            # print '30x redirect'
         return position
 
 class Processor():
@@ -315,7 +334,7 @@ class Scan(Process):
         rfxss_case_list=[]
         if processor.reflect:
             request=processor.request
-            method,url,headers,body=request.method,request.url,request.url,request.body
+            method,url,headers,body=request.method,request.url,request.headers,request.body
             reflect = processor.reflect
             if method == 'GET':
                 for i in reflect:
@@ -344,15 +363,15 @@ class Scan(Process):
                 print 'traffic_queue is empty!'
                 time.sleep(1)
             else:
-                print "Scan-%s,TRAFFIC_QUEUE:%s" % (os.getpid(), traffic_queue.qsize())
+                # print "Scan-%s,TRAFFIC_QUEUE:%s" % (os.getpid(), traffic_queue.qsize())
                 if traffic_obj==None:
                     break
                 else:
                     processor = Processor(traffic_obj)
                     processor.run()
                     if processor.reflect:
-                        rtn=self.rfxss(processor)
-                        if rtn and isinstance(rtn,list):
+                        rtn = self.rfxss(processor)
+                        if rtn and isinstance(rtn, list):
                             case_list.extend(rtn)
 
 class Verify():
@@ -372,20 +391,16 @@ class Verify():
             elif re.search(match, content, re.S):
                 return True
         else:
-            try:
-                content = response.read()
-            except Exception, e:
-                print 'Read Exception:%s' % e
-            else:
-                match = args[1]
-                location = args[0]
-                if location == 'html' and re.search(match, content):
-                    bs = BeautifulSoup(content, 'lxml')
-                    xsshtml_tag_list = bs.find_all('xsshtml')
-                    if xsshtml_tag_list:
-                        return True
-                elif re.search(match, content, re.S):
+            content = response.read()
+            match = args[1]
+            location = args[0]
+            if location == 'html' and re.search(match, content):
+                bs = BeautifulSoup(content, 'lxml')
+                xsshtml_tag_list = bs.find_all('xsshtml')
+                if xsshtml_tag_list:
                     return True
+            elif re.search(match, content, re.S):
+                return True
 
     @staticmethod
     def request_and_verify(case):
@@ -399,7 +414,6 @@ class Verify():
         with gevent.Timeout(60, False)as timeout:
             resp = make_request(method, url,headers,body)
             if resp:
-                print resp.code
                 if Verify.verify(resp,args):
                     poc = gen_poc(method, url, body)
                     result = (vul, url, poc)
@@ -700,12 +714,9 @@ class Engine(object):
                             req_text = base64.b64decode(req_text)
                             headers_list = req_text.split('\r\n\r\n', 1)[0].split('\r\n')[1:]
                             for header in headers_list:
-                                try:
-                                    header_key, header_value = header.split(': ')[0], header.split(': ')[1]
-                                    if header_key not in req_headers.keys():
-                                        req_headers[header_key] = header_value
-                                except Exception, e:
-                                    print e
+                                header_key, header_value = header.split(': ')[0], header.split(': ')[1]
+                                if header_key not in req_headers.keys():
+                                    req_headers[header_key] = header_value
                             body = req_text.split('\r\n\r\n', 1)[1]
                             request = HttpRequest(method, url, req_headers, body)
                         if child2.tag == 'response':
