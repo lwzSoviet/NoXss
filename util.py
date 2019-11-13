@@ -190,23 +190,23 @@ def make_request(method,url,headers,body):
     # opener.addheaders=headers
     # urllib2.install_opener(opener)
     if method =='GET':
+        req = urllib2.Request(url, headers=headers)
         try:
-            req=urllib2.Request(url,headers=headers)
             resp = urllib2.urlopen(req,timeout=2)
             return resp
         except URLError, e:
             print "make request error!%s........." % e.reason
-            REQUEST_ERROR.append(('make_request',req))
+            REQUEST_ERROR.append(('make_request',url,e.reason))
         except socket.timeout:
             print 'make request error!socket time out!'
     elif method=='POST':
+        req = urllib2.Request(url, data=body, headers=headers)
         try:
-            req = urllib2.Request(url,data=body,headers=headers)
             resp = urllib2.urlopen(req, timeout=2)
             return resp
         except URLError, e:
             print "make request error!%s........." % e.reason
-            REQUEST_ERROR.append(('make_request',req))
+            REQUEST_ERROR.append(('make_request',url,e.reason))
         except socket.timeout:
             print 'make request error!socket time out!'
 

@@ -63,13 +63,13 @@ class Traffic_generator(Process):
         # add referer
         self.DEFAULT_HEADER['Referer']='https"//'+domain+'/'
         request = HttpRequest(method='GET', url=url, headers=self.DEFAULT_HEADER, body='')
+        req = urllib2.Request(url=url, headers=self.DEFAULT_HEADER)
         try:
             print 'Visit %s'%url
-            req = urllib2.Request(url=url, headers=self.DEFAULT_HEADER)
             resp = urllib2.urlopen(req, timeout=2)
         except urllib2.URLError, e:
             print e
-            REQUEST_ERROR.append(('gen_traffic',req))
+            REQUEST_ERROR.append(('gen_traffic',url,e.reason))
         else:
             resp_headers = resp.headers.headers
             resp_headers_dict = list2dict(resp_headers)
@@ -183,7 +183,7 @@ class Detector():
                     else:
                         tmp = body.split['=']
                         param_dict = tmp[0], tmp[1]
-                except TypeError, e:
+                except TypeError:
                     print 'Json is not valid:%s'%body
         return param_dict
 
@@ -498,7 +498,9 @@ class Verify():
                         browser.get(url)
                     except TimeoutException, e:
                         print e
-                        # browser blocks sometimes.
+                        # mark if browser get() exception
+                        REQUEST_ERROR.append(('Openner get()',url,'timeout'))
+                        # browser blocked sometimes.
                         rtn = self.handle_block(browser)
                         if rtn is not None:
                             browser = rtn
@@ -603,6 +605,8 @@ class Render(Process):
                     browser.get(url)
                 except TimeoutException, e:
                     print e
+                    # mark if browser get() exception
+                    REQUEST_ERROR.append(('Render get()', url,'timeout'))
                     # browser blocks sometimes.
                     rtn = self.handle_block(browser)
                     if rtn is not None:
