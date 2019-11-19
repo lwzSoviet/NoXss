@@ -10,6 +10,7 @@
 import cPickle
 import os
 import time
+import urllib
 import urllib2
 from Queue import Empty
 from multiprocessing import Process, Manager
@@ -231,43 +232,43 @@ class Detector():
                     if 'text/html' in content_type:
                         if not re.search('<html.*?</html>', response_data, re.S):
                             position.append('html')
-                        else:
-                            if re.search(js_reg, response_data):
-                                # check value's type,str or number
-                                type=check_type(value)
-                                bs = BeautifulSoup(response_data, 'lxml')
-                                script_tag_list = bs.find_all('script')
-                                if type=='string':
-                                    for i in script_tag_list:
-                                        js_code=i.text.encode('utf-8')
-                                        # replace ' ' to ''
-                                        js_code=js_code.replace(' ','')
-                                        if value in js_code:
-                                            if re.search('\'[^\"]*?' + re.escape(value) + '[^\"]*?\'',js_code,re.I):
-                                                position.append('jssq')
-                                            else:
-                                                position.append('jsdq')
-                                else:
-                                    for i in script_tag_list:
-                                        js_code = i.text.encode('utf-8')
-                                        # replace ' ' to ''
-                                        js_code = js_code.replace(' ', '')
-                                        if value in js_code:
-                                            if re.search('\'[^\"]*?' + re.escape(value) + '[^\"]*?\'', js_code,re.I):
-                                                position.append('jssq')
-                                            elif re.search('[+\\-*/%=]{value}[^"\']*?;|[+\\-*/%=]{value}[^"\']*?,'.format(value=re.escape(value)), js_code):
-                                                position.append('jsnq')
-                                            # func call
-                                            # elif re.search(,js_code,re.I):
-                                            #     pass
-                                            else:
-                                                position.append('jsdq')
-                            if re.search(html_reg, response_data):
-                                position.append('html')
-                            if re.search(tag_reg, response_data):
-                                position.append('tag')
-                            if re.search(func_reg, response_data):
-                                position.append('func')
+                        if re.search(js_reg, response_data):
+                            # check value's type,str or number
+                            type = check_type(value)
+                            bs = BeautifulSoup(response_data, 'lxml')
+                            script_tag_list = bs.find_all('script')
+                            if type == 'string':
+                                for i in script_tag_list:
+                                    js_code = i.text.encode('utf-8')
+                                    # replace ' ' to ''
+                                    js_code = js_code.replace(' ', '')
+                                    if value in js_code:
+                                        if re.search('\'[^\"]*?' + re.escape(value) + '[^\"]*?\'', js_code, re.I):
+                                            position.append('jssq')
+                                        else:
+                                            position.append('jsdq')
+                            else:
+                                for i in script_tag_list:
+                                    js_code = i.text.encode('utf-8')
+                                    # replace ' ' to ''
+                                    js_code = js_code.replace(' ', '')
+                                    if value in js_code:
+                                        if re.search('\'[^\"]*?' + re.escape(value) + '[^\"]*?\'', js_code, re.I):
+                                            position.append('jssq')
+                                        elif re.search('[+\\-*/%=]{value}[^"\']*?;|[+\\-*/%=]{value}[^"\']*?,'.format(
+                                                value=re.escape(value)), js_code):
+                                            position.append('jsnq')
+                                        # func call
+                                        # elif re.search(,js_code,re.I):
+                                        #     pass
+                                        else:
+                                            position.append('jsdq')
+                        if re.search(html_reg, response_data):
+                            position.append('html')
+                        if re.search(tag_reg, response_data):
+                            position.append('tag')
+                        if re.search(func_reg, response_data):
+                            position.append('func')
                     # Content-type=other
                     else:
                         pass
@@ -516,7 +517,7 @@ class Verify():
                             alert.accept()
                             page_source = browser.page_source
                         if Verify.verify(page_source, args):
-                            poc = gen_poc('GET', url)
+                            poc = gen_poc('GET', url,'')
                             result = (vul, url, poc)
                             openner_result.append(result)
             # must close the browser.
@@ -874,6 +875,12 @@ class Engine(object):
             filter_task.append(t)
         return filter_task
 
+    def urldecode(self,url_list):
+        for i in range(len(url_list)):
+            if '%' in url_list[i]:
+                url_list[i]=urllib.unquote(url_list[i])
+        return url_list
+
     def start(self):
         # check if traffic_path exists.
         traffic_path=self.get_traffic_path(self.id)
@@ -903,6 +910,8 @@ class Engine(object):
                 else:
                     print '%s not exists!' % file
             # self.multideduplicate(url_list)
+            # decode
+            url_list=self.urldecode(url_list)
             if self.browser:
                 # render
                 print 'Start to open url with %s.' % self.browser
