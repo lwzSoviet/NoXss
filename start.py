@@ -27,12 +27,14 @@ if __name__=="__main__":
     banner()
     args=parser.parse_args()
     if args.check:
-        from  check import check
-        check()
+        from check import check_install
+        check_install()
     # default
     url,file,burp,cookie='','','',''
     if args.url:
+        from check import check_url
         url=args.url
+        check_url(url)
     if args.file:
         file=args.file
     if args.burp:
@@ -59,6 +61,12 @@ if __name__=="__main__":
         else:
             from cookie import save_cookie
             save_cookie(args.cookie, domain)
+    else:
+        from cookie import try_cookie
+        domain = get_domain_from_url(url)
+        rtn=try_cookie(domain)
+        if rtn:
+            cookie=rtn
     if url or file or burp:
         if args.id:
             id=args.id
@@ -67,9 +75,12 @@ if __name__=="__main__":
         engine=Engine(id=id,url=url,file=file,burp=burp,process=num,browser=browser,cookie=cookie)
         result=engine.start()
         if result:
-            if args.save:
-                save(result,id)
+            save(result,id)
         else:
             print_info('No xss found!')
     else:
         print '--url and --file must choose one!'
+
+    # 存储型xss解决方案
+    # 记录头部过于复杂的请求
+    # 记录multipart请求

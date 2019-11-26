@@ -76,10 +76,9 @@ def get_cookie(target_domain,):
                     return cookies_text
                 else:
                     print 'Cookie of %s is expired!!!' % domain_scope
-        # cookie 不存在
+        # cookie not exists
         else:
-            pass
-            # print 'Cookie of %s not exist!!!' % domain_scope
+            print 'Cookie of %s not exist!!!' % domain_scope
     except IndexError,e:
         print e
 
@@ -99,14 +98,17 @@ def get_cookie_ip(ip,):
                 else:
                     print 'Cookie of %s is expired!!!' % domain_scope
         else:
-            pass
-            # print 'Cookie of %s not exist!!!' % domain_scope
+            print 'Cookie of %s not exist!!!' % domain_scope
     except IndexError,e:
         print e
 
-# get all cookies about one domain,for logic-scan
-def get_all_cookie(domain):
-    pass
+def try_cookie(domain):
+    # try to find cookie from cookie/ and add it to DEFAULT_HEADER
+    cookie = get_cookie(domain)
+    if cookie:
+        choose = raw_input('\033[1;32m{}\033[0m'.format("Cookie of %s is found in ./cookie/,Do you want to use it? (y/n)"%domain))
+        if choose == 'y' or choose == 'yes' or choose=='':
+            return cookie
 
 if __name__=='__main__':
     pass
