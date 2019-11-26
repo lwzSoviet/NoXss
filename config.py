@@ -16,5 +16,11 @@ RESULT_DIR = os.path.join(BASE_DIR, 'result')
 TRAFFIC_DIR =os.path.join(BASE_DIR, 'traffic')
 
 # save request error
-REQUEST_ERROR=[]
 # [(func_name,request,exception),]
+REQUEST_ERROR=[]
+
+# save redirect request
+REDIRECT=[]
+
+# save 'multipart/form-data; boundary=' request
+MULTIPART=[]

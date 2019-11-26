@@ -7,10 +7,12 @@
     @Author  : longwenzhang
     @Time    : 19-10-29 下午3:46
 """
+import urllib2
+
 from selenium import webdriver
 from util import print_info, print_warn
 
-def check():
+def check_install():
     try:
         br=webdriver.Chrome()
     except Exception, e:
@@ -34,3 +36,10 @@ def check():
             br.quit()
             print_info('Phantomjs is installed correctly.')
     exit(0)
+
+def check_url(url):
+    try:
+        urllib2.urlopen(url)
+    except Exception,e:
+        print e
+        exit(0)

@@ -11,7 +11,6 @@ import datetime
 import json
 import os
 import re
-import socket
 import urllib
 import urllib2
 import urlparse
@@ -19,7 +18,7 @@ from urllib2 import URLError
 from prettytable import PrettyTable
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
-from config import RESULT_DIR, REQUEST_ERROR
+from config import RESULT_DIR, REQUEST_ERROR, REDIRECT
 from cookie import get_cookie, get_cookie_ip, is_ip, get_cookies_list
 
 proxy_info={'host':'127.0.0.1',
@@ -192,23 +191,22 @@ def make_request(method,url,headers,body):
     if method =='GET':
         req = urllib2.Request(url, headers=headers)
         try:
-            resp = urllib2.urlopen(req,timeout=2)
+            resp = urllib2.urlopen(req)
+            # save redirect
+            if resp.url!=url:
+                REDIRECT.append(url)
             return resp
         except URLError, e:
-            print "make request error!%s........." % e.reason
-            REQUEST_ERROR.append(('make_request',url,e.reason))
-        except socket.timeout:
-            print 'make request error!socket time out!'
+            REQUEST_ERROR.append(('make_request()',url,e.reason))
     elif method=='POST':
         req = urllib2.Request(url, data=body, headers=headers)
         try:
-            resp = urllib2.urlopen(req, timeout=2)
+            resp = urllib2.urlopen(req)
+            if resp.url!=url:
+                REDIRECT.append(url)
             return resp
         except URLError, e:
-            print "make request error!%s........." % e.reason
-            REQUEST_ERROR.append(('make_request',url,e.reason))
-        except socket.timeout:
-            print 'make request error!socket time out!'
+            REQUEST_ERROR.append(('make_request()',url,e.reason))
 
 def chrome():
     # support to get response status and headers

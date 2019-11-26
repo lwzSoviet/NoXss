@@ -18,11 +18,11 @@ import json
 import re
 import urlparse
 from selenium.common.exceptions import TimeoutException, UnexpectedAlertPresentException
-from config import TRAFFIC_DIR, REQUEST_ERROR
+from config import TRAFFIC_DIR, REQUEST_ERROR, REDIRECT, MULTIPART
 from cookie import get_cookie
 from model import Case, HttpRequest, HttpResponse
 from util import change_by_param, list2dict, print_info, chrome, phantomjs, getResponseHeaders, check_type, add_cookie, \
-    get_domain_from_url
+    get_domain_from_url, print_warn
 import gevent
 from gevent import pool
 from util import make_request, gen_poc
@@ -58,32 +58,36 @@ class Traffic_generator(Process):
         domain = get_domain_from_url(url)
         if self.cookie:
             # add cookie to DEFAULT_HEADER
-            cookie=get_cookie(domain)
-            if cookie:
-                self.DEFAULT_HEADER['Cookie']=cookie
+            self.DEFAULT_HEADER['Cookie']=self.cookie
         # add referer
         self.DEFAULT_HEADER['Referer']='https"//'+domain+'/'
         request = HttpRequest(method='GET', url=url, headers=self.DEFAULT_HEADER, body='')
         req = urllib2.Request(url=url, headers=self.DEFAULT_HEADER)
-        try:
-            print 'Visit %s'%url
-            resp = urllib2.urlopen(req, timeout=2)
-        except urllib2.URLError, e:
-            print e
-            REQUEST_ERROR.append(('gen_traffic',url,e.reason))
-        else:
-            resp_headers = resp.headers.headers
-            resp_headers_dict = list2dict(resp_headers)
-            response = HttpResponse(code=str(resp.code), reason=resp.msg, headers=resp_headers_dict,
-                                    data=resp.read())
-            return (request, response)
+        with gevent.Timeout(10,False)as t:
+            try:
+                resp = urllib2.urlopen(req)
+            except urllib2.URLError, e:
+                REQUEST_ERROR.append(('gen_traffic()', url, e.reason))
+            else:
+                if resp.url != url:
+                    REDIRECT.append(url)
+                try:
+                    data = resp.read()
+                except Exception, e:
+                    print e
+                else:
+                    resp_headers = resp.headers.headers
+                    resp_headers_dict = list2dict(resp_headers)
+                    response = HttpResponse(code=str(resp.code), reason=resp.msg, headers=resp_headers_dict,
+                                            data=data)
+                    return (request, response)
 
     def run(self):
         import gevent
         from gevent import monkey
         monkey.patch_all()
         from gevent import pool
-        g_pool = pool.Pool(300)
+        g_pool = pool.Pool(100)
         tasks = [g_pool.spawn(self.gen_traffic, url) for url in self.url_list]
         gevent.joinall(tasks)
         traffic_list=[]
@@ -367,7 +371,7 @@ class Scan(Process):
                 print 'traffic_queue is empty!'
                 time.sleep(1)
             else:
-                # print "Scan-%s,TRAFFIC_QUEUE:%s" % (os.getpid(), traffic_queue.qsize())
+                print "Scan-%s,TRAFFIC_QUEUE:%s" % (os.getpid(), traffic_queue.qsize())
                 if traffic_obj==None:
                     break
                 else:
@@ -414,12 +418,14 @@ class Verify():
         headers=case.headers
         body = case.body
         args=case.args
+        print 'Verify case use:\n%s'%url
         # time out
-        with gevent.Timeout(60, False)as timeout:
+        with gevent.Timeout(10, False)as t:
             resp = make_request(method, url,headers,body)
             if resp:
                 if Verify.verify(resp,args):
                     poc = gen_poc(method, url, body)
+                    print_warn('Found %s in %s'%(vul,poc))
                     result = (vul, url, poc)
                     return result
             # count++ when error happened
@@ -435,7 +441,7 @@ class Verify():
         from gevent import monkey
         monkey.patch_all()
         result = []
-        geventPool = pool.Pool(20)
+        geventPool = pool.Pool(100)
         t1=time.time()
         tasks = [geventPool.spawn(Verify.request_and_verify, case) for case in case_list]
         gevent.joinall(tasks)
@@ -444,7 +450,7 @@ class Verify():
         for i in tasks:
             if i.value is not None:
                 result.append(i.value)
-        print 'Total Case is: %s, %s error happened.' % (len(case_list),Verify.ERROR_COUNT)
+        print_info('Total Verify-Case is: %s, %s error happened.' % (len(case_list),Verify.ERROR_COUNT))
         return result
 
     class Openner(Process):
@@ -683,6 +689,7 @@ class Engine(object):
         with open(traffic_path)as f:
             traffic_list=cPickle.load(f)
             print 'Start to put traffic into traffic_queue,Total is %s.'%len(traffic_list)
+            # traffic_list=traffic_list[:1000]
             for traffic in traffic_list:
                 traffic_queue.put(traffic)
 
@@ -744,9 +751,18 @@ class Engine(object):
                                 data = resp_text.split('\r\n\r\n', 1)[1]
                                 response = HttpResponse(code, reason, resp_headers, data)
                     if request and response:
-                        if (request.method=='GET' and '?' in request.url) or (request.method=='POST' and request.body):
-                            burp_traffic.append((request,response))
-                            traffic_queue.put((request,response))
+                        if request.method=='GET' and '?' in request.url:
+                            # filter static URL
+                            if not Filter.static_reg.search(url):
+                                burp_traffic.append((request,response))
+                                traffic_queue.put((request,response))
+                        elif request.method=='POST' and request.body:
+                            # save multipart
+                            if 'multipart/form-data; boundary=' in request.get_header('Content-Type'):
+                                MULTIPART.append((request,response))
+                            else:
+                                burp_traffic.append((request, response))
+                                traffic_queue.put((request, response))
             self.send_end_sig()
         else:
             print '%s not exists!'%self.burp
@@ -802,7 +818,7 @@ class Engine(object):
                 return False
             else:
                 api = get_api(url)
-                # check if the api is existing
+                # check if the api is exists
                 if api in api_list:
                     return False
                 else:
@@ -841,6 +857,22 @@ class Engine(object):
         if len(REQUEST_ERROR)>0:
             with open(self.get_traffic_path(self.id).replace('.traffic','.error'),'w')as f:
                 cPickle.dump(REQUEST_ERROR,f)
+
+    def save_redirect(self):
+        if len(REDIRECT)>0:
+            with open(self.get_traffic_path(self.id).replace('.traffic', '.redirect'), 'w')as f:
+                cPickle.dump(REDIRECT, f)
+
+    def save_multipart(self):
+        if len(MULTIPART)>0:
+            with open(self.get_traffic_path(self.id).replace('.traffic', '.multipart'), 'w')as f:
+                cPickle.dump(MULTIPART, f)
+
+    def save_analysis(self):
+        print_info('Total multipart is: %s,redirect is: %s,request exception is: %s'%(len(MULTIPART),len(REDIRECT),len(REQUEST_ERROR)))
+        self.save_multipart()
+        self.save_redirect()
+        self.save_request_exception()
 
     def multideduplicate(self,url_list):
         """
@@ -923,7 +955,7 @@ class Engine(object):
                 self.save_traffic()
             else:
                 # traffic maker
-                print 'Start to request url with Get().'
+                print 'Start to request url with urllib2.'
                 traffic_maker = Traffic_generator(self.id, url_list,self.cookie)
                 traffic_maker.start()
                 traffic_maker.join()
@@ -941,12 +973,12 @@ class Engine(object):
             if self.browser:
                 # verify
                 Verify.verify_with_browser(self.browser,case_list,self.process,self.cookie)
-                self.save_request_exception()
+                self.save_analysis()
                 return openner_result
             else:
                 # verify,async
                 verify_result = Verify.verify_async(case_list)
-                self.save_request_exception()
+                self.save_analysis()
                 return verify_result
 
 if __name__=='__main__':
