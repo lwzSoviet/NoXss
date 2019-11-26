@@ -13,6 +13,7 @@ import time
 import urllib
 import urllib2
 from Queue import Empty
+from httplib import BadStatusLine
 from multiprocessing import Process, Manager
 import json
 import re
@@ -521,6 +522,12 @@ class Verify():
                             splited = url.split('/', 3)
                             path = '/'.join(splited)
                             blocked_urls.append(path)
+                    except BadStatusLine, e:
+                        print e
+                        REQUEST_ERROR.append(('Render get()', url, 'BadStatusLine'))
+                        splited = url.split('/', 3)
+                        path = '/'.join(splited)
+                        blocked_urls.append(path)
                     else:
                         try:
                             page_source = browser.page_source
@@ -626,7 +633,7 @@ class Render(Process):
             if path not in blocked_urls:
                 try:
                     browser.get(url)
-                except TimeoutException, e:
+                except TimeoutException,e:
                     print e
                     # save if browser get() exception
                     REQUEST_ERROR.append(('Render get()', url,'timeout'))
@@ -637,6 +644,12 @@ class Render(Process):
                         splited = url.split('/', 3)
                         path = '/'.join(splited)
                         blocked_urls.append(path)
+                except BadStatusLine,e:
+                    print e
+                    REQUEST_ERROR.append(('Render get()', url, 'BadStatusLine'))
+                    splited = url.split('/', 3)
+                    path = '/'.join(splited)
+                    blocked_urls.append(path)
                 else:
                     try:
                         page_source = browser.page_source
