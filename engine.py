@@ -17,12 +17,12 @@ from multiprocessing import Process, Manager
 import json
 import re
 import urlparse
+from ssl import CertificateError
 from selenium.common.exceptions import TimeoutException, UnexpectedAlertPresentException
 from config import TRAFFIC_DIR, REQUEST_ERROR, REDIRECT, MULTIPART
-from cookie import get_cookie
 from model import Case, HttpRequest, HttpResponse
 from util import change_by_param, list2dict, print_info, chrome, phantomjs, getResponseHeaders, check_type, add_cookie, \
-    get_domain_from_url, print_warn
+    get_domain_from_url, print_warn, dict2str, str2dict
 import gevent
 from gevent import pool
 from util import make_request, gen_poc
@@ -30,9 +30,14 @@ try:
     from bs4 import BeautifulSoup
 except ImportError, e:
     print e
+def _pickle_method(m):
+    if m.im_self is None:
+        return getattr, (m.im_class, m.im_func.func_name)
+    else:
+        return getattr, (m.im_self, m.im_func.func_name)
+
 
 burp_traffic = []
-
 manager = Manager()
 case_list=manager.list()
 openner_result = manager.list()
@@ -68,6 +73,8 @@ class Traffic_generator(Process):
                 resp = urllib2.urlopen(req)
             except urllib2.URLError, e:
                 REQUEST_ERROR.append(('gen_traffic()', url, e.reason))
+            except CertificateError:
+                REQUEST_ERROR.append(('gen_traffic()', url, 'ssl.CertificateError'))
             else:
                 if resp.url != url:
                     REDIRECT.append(url)
@@ -87,7 +94,7 @@ class Traffic_generator(Process):
         from gevent import monkey
         monkey.patch_all()
         from gevent import pool
-        g_pool = pool.Pool(100)
+        g_pool = pool.Pool(200)
         tasks = [g_pool.spawn(self.gen_traffic, url) for url in self.url_list]
         gevent.joinall(tasks)
         traffic_list=[]
@@ -441,7 +448,7 @@ class Verify():
         from gevent import monkey
         monkey.patch_all()
         result = []
-        geventPool = pool.Pool(100)
+        geventPool = pool.Pool(200)
         t1=time.time()
         tasks = [geventPool.spawn(Verify.request_and_verify, case) for case in case_list]
         gevent.joinall(tasks)
@@ -587,12 +594,21 @@ class Render(Process):
             return browser
 
     def gen_traffic(self,url,page_source,response_headers):
-        request = HttpRequest(method='GET', url=url, headers=Traffic_generator.DEFAULT_HEADER, body='')
-        if response_headers is None:
-            response_headers={}
-        response = HttpResponse(code='200', reason='OK', headers=response_headers,
-                                        data=page_source)
-        return (request, response)
+        if self.browser=='chrome':
+            request = HttpRequest(method='GET', url=url, headers=Traffic_generator.DEFAULT_HEADER, body='')
+            if response_headers is None:
+                response_headers = {}
+            response = HttpResponse(code='200', reason='OK', headers=response_headers,
+                                    data=page_source)
+            return (request, response)
+        # pickled error when phantomjs,the headers must be str
+        elif self.browser=='phantomjs':
+            request = HttpRequest(method='GET', url=url, headers=dict2str(Traffic_generator.DEFAULT_HEADER), body='')
+            if response_headers is None:
+                response_headers = {}
+            response = HttpResponse(code='200', reason='OK', headers=dict2str(response_headers),
+                                    data=page_source)
+            return (request, response)
 
     def run(self):
         blocked_urls=[]
@@ -612,7 +628,7 @@ class Render(Process):
                     browser.get(url)
                 except TimeoutException, e:
                     print e
-                    # mark if browser get() exception
+                    # save if browser get() exception
                     REQUEST_ERROR.append(('Render get()', url,'timeout'))
                     # browser blocks sometimes.
                     rtn = self.handle_block(browser)
@@ -632,9 +648,11 @@ class Render(Process):
                     response_headers = getResponseHeaders(self.browser, browser)
                     traffic = self.gen_traffic(url, page_source, response_headers)
                     if traffic:
-                        traffic_queue.put(traffic)
-                        traffic_list.append(traffic)
-        # must close the browser.
+                        try:
+                            traffic_list.append(traffic)
+                        except Exception,e:
+                            print e
+        # quit browser.
         browser.quit()
 
 class Filter(Process):
@@ -689,7 +707,6 @@ class Engine(object):
         with open(traffic_path)as f:
             traffic_list=cPickle.load(f)
             print 'Start to put traffic into traffic_queue,Total is %s.'%len(traffic_list)
-            # traffic_list=traffic_list[:1000]
             for traffic in traffic_list:
                 traffic_queue.put(traffic)
 
@@ -938,7 +955,7 @@ class Engine(object):
                                 url_list.append(i)
                         url_list = self.deduplicate(url_list)
                         # test 10000 urls
-                        # url_list = url_list[:10000]
+                        # url_list = url_list[:50]
                 else:
                     print '%s not exists!' % file
             # self.multideduplicate(url_list)
@@ -946,13 +963,22 @@ class Engine(object):
             url_list=self.urldecode(url_list)
             if self.browser:
                 # render
-                print 'Start to open url with %s.' % self.browser
+                print 'Start to request url with %s.' % self.browser
                 render_task = self.get_render_task(url_list)
                 for i in render_task:
                     i.start()
                 for i in render_task:
                     i.join()
                 self.save_traffic()
+                # put traffic tp queue
+                for i in range(len(traffic_list)):
+                    request = traffic_list[i][0]
+                    response = traffic_list[i][1]
+                    # change headers(str) to headers(dict) when use phantomjs
+                    if self.browser == 'phantomjs':
+                        request.headers=str2dict(request.headers)
+                        response.headers = str2dict(response.headers)
+                    traffic_queue.put((request,response))
             else:
                 # traffic maker
                 print 'Start to request url with urllib2.'

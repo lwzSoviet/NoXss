@@ -14,6 +14,7 @@ import re
 import urllib
 import urllib2
 import urlparse
+from ssl import CertificateError
 from urllib2 import URLError
 from prettytable import PrettyTable
 from selenium import webdriver
@@ -198,6 +199,8 @@ def make_request(method,url,headers,body):
             return resp
         except URLError, e:
             REQUEST_ERROR.append(('make_request()',url,e.reason))
+        except CertificateError:
+            REQUEST_ERROR.append(('make_request()', url, 'ssl.CertificateError'))
     elif method=='POST':
         req = urllib2.Request(url, data=body, headers=headers)
         try:
@@ -207,6 +210,8 @@ def make_request(method,url,headers,body):
             return resp
         except URLError, e:
             REQUEST_ERROR.append(('make_request()',url,e.reason))
+        except CertificateError:
+            REQUEST_ERROR.append(('make_request()', url, 'ssl.CertificateError'))
 
 def chrome():
     # support to get response status and headers
@@ -250,14 +255,13 @@ def add_cookie(browser,url):
 
 def getResponseHeaders(type,browser):
     if type=='phantomjs':
-        har = json.loads(browser.get_log('har')[0]['message'])
-        return dict([(header["name"], header["value"]) for header in har['log']['entries'][0]['response']["headers"]],
-                   key=lambda x: x[0])
-        # if temp:
-        #     result={}
-        #     for k,v in temp.items():
-        #         result[k.capitalize()]=v
-        #     return result
+        try:
+            har = json.loads(browser.get_log('har')[0]['message'])
+            return dict(
+                [(header["name"], header["value"]) for header in har['log']['entries'][0]['response']["headers"]],
+                key=lambda x: x[0])
+        except:
+            return {}
     elif type=='chrome':
         for responseReceived in browser.get_log('performance'):
             try:
@@ -265,14 +269,9 @@ def getResponseHeaders(type,browser):
                 if response['url'] == browser.current_url:
                     temp=response['headers']
                     return temp
-                    # if temp:
-                    #     result = {}
-                    #     for k, v in temp.items():
-                    #         result[k.capitalize()] = v
-                    #     return result
             except:
                 pass
-        return None
+        return {}
 
 def getResponseStatus(type,browser):
     if type=='phantomjs':
@@ -302,6 +301,15 @@ def check_type(value):
         except ValueError:
             type='string'
             return type
+
+def str2dict(str):
+    try:
+        return eval(str)
+    except SyntaxError:
+        return {}
+
+def dict2str(dict):
+    return str(dict)
 
 def gen_poc(*args):
     """

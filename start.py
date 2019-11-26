@@ -79,7 +79,7 @@ if __name__=="__main__":
         else:
             print_info('No xss found!')
     else:
-        print '--url and --file must choose one!'
+        print 'error: missing a mandatory option (--url, --file, --burp)!'
 
     # 存储型xss解决方案
     # 记录头部过于复杂的请求
