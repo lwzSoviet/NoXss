@@ -30,7 +30,7 @@ if __name__=="__main__":
         from check import check_install
         check_install()
     # default
-    url,file,burp,cookie='','','',''
+    url,file,burp='','',''
     if args.url:
         from check import check_url
         url=args.url
@@ -48,7 +48,6 @@ if __name__=="__main__":
     if args.process:
         num=args.process
     if args.cookie:
-        cookie=args.cookie
         from cookie import save_cookie_ip, is_ip
         if file:
             with open(file)as f:
@@ -61,18 +60,12 @@ if __name__=="__main__":
         else:
             from cookie import save_cookie
             save_cookie(args.cookie, domain)
-    else:
-        from cookie import try_cookie
-        domain = get_domain_from_url(url)
-        rtn=try_cookie(domain)
-        if rtn:
-            cookie=rtn
     if url or file or burp:
         if args.id:
             id=args.id
         else:
             id=gen_id()
-        engine=Engine(id=id,url=url,file=file,burp=burp,process=num,browser=browser,cookie=cookie)
+        engine=Engine(id=id,url=url,file=file,burp=burp,process=num,browser=browser)
         result=engine.start()
         if result:
             save(result,id)
@@ -84,3 +77,4 @@ if __name__=="__main__":
     # 存储型xss解决方案
     # 记录头部过于复杂的请求
     # 记录multipart请求
+    # reflect准确率

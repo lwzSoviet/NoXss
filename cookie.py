@@ -42,8 +42,8 @@ def get_cookies_list(target_domain):
                         cookies_list.append(cookie_dict)
     return cookies_list
 
-# save cookie default expire=360000s
-def save_cookie(cookie,domain,expire_time=360000):
+# save cookie default expire=3600s
+def save_cookie(cookie,domain,expire_time=3600):
     domain_scope='.'+domain.split('.')[-2]+'.'+domain.split('.')[-1]
     expire=int(time.time())+expire_time
     with open(os.path.join(COOKIE_DIR,'_'.join([domain_scope,'cookie'])), 'w+')as cookie_file:
@@ -52,7 +52,7 @@ def save_cookie(cookie,domain,expire_time=360000):
         cookie_file.write(str(expire))
 
 #  save cookie for http://ip/path
-def save_cookie_ip(cookie,ip,expire_time=360000):
+def save_cookie_ip(cookie,ip,expire_time=3600):
     domain_scope=ip
     print domain_scope
     expire=int(time.time())+expire_time

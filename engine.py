@@ -21,6 +21,7 @@ import urlparse
 from ssl import CertificateError
 from selenium.common.exceptions import TimeoutException, UnexpectedAlertPresentException
 from config import TRAFFIC_DIR, REQUEST_ERROR, REDIRECT, MULTIPART
+from cookie import get_cookie
 from model import Case, HttpRequest, HttpResponse
 from util import change_by_param, list2dict, print_info, chrome, phantomjs, getResponseHeaders, check_type, add_cookie, \
     get_domain_from_url, print_warn, dict2str, str2dict
@@ -54,17 +55,16 @@ class Traffic_generator(Process):
     DEFAULT_HEADER = {
         'User-Agent': 'Mozilla/2.0 (X11; Linux x86_64) AppleWebKit/237.36 (KHTML, like Gecko) Chrome/62.0.3322.146 Safari/237.36',
     }
-    def __init__(self,id,url_list,cookie):
+    def __init__(self,id,url_list):
         Process.__init__(self)
         self.id=id
         self.url_list=url_list
-        self.cookie=cookie
 
     def gen_traffic(self,url):
         domain = get_domain_from_url(url)
-        if self.cookie:
-            # add cookie to DEFAULT_HEADER
-            self.DEFAULT_HEADER['Cookie']=self.cookie
+        # add cookie to DEFAULT_HEADER
+        cookie=get_cookie(domain)
+        self.DEFAULT_HEADER['Cookie']=cookie
         # add referer
         self.DEFAULT_HEADER['Referer']='https"//'+domain+'/'
         request = HttpRequest(method='GET', url=url, headers=self.DEFAULT_HEADER, body='')
@@ -267,20 +267,24 @@ class Detector():
                                     if value in js_code:
                                         if re.search('\'[^\"]*?' + re.escape(value) + '[^\"]*?\'', js_code, re.I):
                                             position.append('jssq')
-                                        elif re.search('[+\\-*/%=]{value}[^"\']*?;|[+\\-*/%=]{value}[^"\']*?,'.format(
+                                        if re.search('[+\\-*/%=]{value}[^"\']*?;|[+\\-*/%=]{value}[^"\']*?;'.format(
                                                 value=re.escape(value)), js_code):
                                             position.append('jsnq')
                                         # func call
                                         # elif re.search(,js_code,re.I):
                                         #     pass
-                                        else:
+                                        if re.search('\"[^\']*?' + re.escape(value) + '[^\']*?\"',js_code,re.I):
                                             position.append('jsdq')
                         if re.search(html_reg, response_data):
                             position.append('html')
                         if re.search(tag_reg, response_data):
                             position.append('tag')
-                        if re.search(func_reg, response_data):
-                            position.append('func')
+                        func_match=re.search(func_reg, response_data)
+                        if func_match:
+                            result=func_match.group()
+                            # too long means not function call
+                            if len(result)<50:
+                                position.append('func')
                     # Content-type=other
                     else:
                         pass
@@ -381,6 +385,7 @@ class Scan(Process):
             else:
                 print "Scan-%s,TRAFFIC_QUEUE:%s" % (os.getpid(), traffic_queue.qsize())
                 if traffic_obj==None:
+                    print 'NONENONE'
                     break
                 else:
                     processor = Processor(traffic_obj)
@@ -462,11 +467,10 @@ class Verify():
         return result
 
     class Openner(Process):
-        def __init__(self,browser_type,case_list,cookie):
+        def __init__(self,browser_type,case_list):
             Process.__init__(self)
             self.browser=browser_type
             self.case_list=case_list
-            self.cookie=cookie
 
         def reload(self,browser):
             # close old
@@ -477,8 +481,7 @@ class Verify():
             else:
                 browser = phantomjs()
             # add cookie, the scope is case_list[0].url's top-domain
-            if self.cookie:
-                add_cookie(browser,case_list[0].url)
+            add_cookie(browser,case_list[0].url)
             return browser
 
         def handle_block(self,browser):
@@ -497,8 +500,7 @@ class Verify():
             else:
                 browser = phantomjs()
             # add cookie, the scope is case_list[0].url's top-domain
-            if self.cookie:
-                add_cookie(browser,case_list[0].url)
+            add_cookie(browser,case_list[0].url)
             for case in self.case_list:
                 if case.method=='POST':
                     continue
@@ -544,7 +546,7 @@ class Verify():
             browser.quit()
 
     @staticmethod
-    def verify_with_browser(browser_type,case_list,process_num,cookie):
+    def verify_with_browser(browser_type,case_list,process_num):
         open_task = []
         i = len(case_list)
         k = 0
@@ -556,11 +558,11 @@ class Verify():
                 else:
                     cases = case_list[k:j * (i + 1)]
                     k = j * (i + 1)
-                t = Verify.Openner(browser_type,cases,cookie)
+                t = Verify.Openner(browser_type,cases)
                 open_task.append(t)
         else:
             cases = case_list
-            t = Verify.Openner(browser_type,cases,cookie)
+            t = Verify.Openner(browser_type,cases)
             open_task.append(t)
         for i in open_task:
             i.start()
@@ -571,12 +573,11 @@ class Render(Process):
     """
     Render if the page is DOM-based.
     """
-    def __init__(self,id,browser,url_list,cookie):
+    def __init__(self,id,browser,url_list):
         Process.__init__(self)
         self.id=id
         self.url_list=url_list
         self.browser=browser
-        self.cookie=cookie
 
     def reload(self, browser):
         # close old
@@ -587,8 +588,7 @@ class Render(Process):
         else:
             browser = phantomjs()
         # add cookie, the scope is case_list[0].url's top-domain
-        if self.cookie:
-            add_cookie(browser,self.url_list[0])
+        add_cookie(browser,self.url_list[0])
         return browser
 
     def handle_block(self, browser):
@@ -624,8 +624,7 @@ class Render(Process):
         else:
             browser=phantomjs()
         # add cookie, the scope is url_list[0]'s top-domain
-        if self.cookie:
-            add_cookie(browser,self.url_list[0])
+        add_cookie(browser,self.url_list[0])
         for url in self.url_list:
             splited = url.split('/', 3)
             path = '/'.join(splited)
@@ -706,14 +705,13 @@ class Filter(Process):
                 # filtered.append(url)
 
 class Engine(object):
-    def __init__(self,id,url,file,burp,process,browser,cookie):
+    def __init__(self,id,url,file,burp,process,browser):
         self.id=id
         self.url=url
         self.file=file
         self.burp=burp
         self.process=process
         self.browser=browser
-        self.cookie=cookie
 
     def put_queue(self):
         traffic_path=self.get_traffic_path(self.id)
@@ -793,7 +791,6 @@ class Engine(object):
                             else:
                                 burp_traffic.append((request, response))
                                 traffic_queue.put((request, response))
-            self.send_end_sig()
         else:
             print '%s not exists!'%self.burp
 
@@ -814,11 +811,11 @@ class Engine(object):
                 else:
                     urls = url_list[k:j * (i + 1)]
                     k = j * (i + 1)
-                t = Render(self.id, self.browser, urls,self.cookie)
+                t = Render(self.id, self.browser, urls)
                 render_task.append(t)
         else:
             urls=url_list
-            t = Render(self.id, self.browser,urls,self.cookie)
+            t = Render(self.id, self.browser,urls)
             render_task.append(t)
         return render_task
 
@@ -951,6 +948,7 @@ class Engine(object):
             self.put_queue()
         elif self.burp:
             self.put_burp_to_trafficqueue()
+            self.send_end_sig()
             # save burp traffic
             if burp_traffic:
                 with open(traffic_path,'w')as f:
@@ -968,7 +966,7 @@ class Engine(object):
                                 url_list.append(i)
                         url_list = self.deduplicate(url_list)
                         # test 10000 urls
-                        # url_list = url_list[:50]
+                        url_list = url_list[:100]
                 else:
                     print '%s not exists!' % file
             # self.multideduplicate(url_list)
@@ -992,18 +990,19 @@ class Engine(object):
                         request.headers=str2dict(request.headers)
                         response.headers = str2dict(response.headers)
                     traffic_queue.put((request,response))
+                self.send_end_sig()
             else:
-                # traffic maker
+                # traffic genetator
                 print 'Start to request url with urllib2.'
-                traffic_maker = Traffic_generator(self.id, url_list,self.cookie)
+                traffic_maker = Traffic_generator(self.id, url_list)
                 traffic_maker.start()
                 traffic_maker.join()
                 self.put_queue()
+                self.send_end_sig()
         # scan
         task = [Scan() for i in range(self.process)]
         for i in task:
             i.start()
-        self.send_end_sig()
         for i in task:
             i.join()
         # save reflect for analyzing
@@ -1011,7 +1010,7 @@ class Engine(object):
         if case_list:
             if self.browser:
                 # verify
-                Verify.verify_with_browser(self.browser,case_list,self.process,self.cookie)
+                Verify.verify_with_browser(self.browser,case_list,self.process)
                 self.save_analysis()
                 return openner_result
             else:
