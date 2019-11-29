@@ -201,6 +201,8 @@ def make_request(method,url,headers,body):
             REQUEST_ERROR.append(('make_request()',url,e.reason))
         except CertificateError:
             REQUEST_ERROR.append(('make_request()', url, 'ssl.CertificateError'))
+        except ValueError, e:
+            print e
     elif method=='POST':
         req = urllib2.Request(url, data=body, headers=headers)
         try:
@@ -212,6 +214,8 @@ def make_request(method,url,headers,body):
             REQUEST_ERROR.append(('make_request()',url,e.reason))
         except CertificateError:
             REQUEST_ERROR.append(('make_request()', url, 'ssl.CertificateError'))
+        except ValueError, e:
+            print e
 
 def chrome():
     # support to get response status and headers

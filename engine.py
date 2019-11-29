@@ -76,6 +76,8 @@ class Traffic_generator(Process):
                 REQUEST_ERROR.append(('gen_traffic()', url, e.reason))
             except CertificateError:
                 REQUEST_ERROR.append(('gen_traffic()', url, 'ssl.CertificateError'))
+            except ValueError,e:
+                print e
             else:
                 if resp.url != url:
                     REDIRECT.append(url)
@@ -385,7 +387,6 @@ class Scan(Process):
             else:
                 print "Scan-%s,TRAFFIC_QUEUE:%s" % (os.getpid(), traffic_queue.qsize())
                 if traffic_obj==None:
-                    print 'NONENONE'
                     break
                 else:
                     processor = Processor(traffic_obj)
@@ -828,15 +829,46 @@ class Engine(object):
                 filtered=f.read().split('\n')
                 return filtered
         api_list = []
+        def which_type(character):
+            if re.search(r'\d',character):
+                return 'd'
+            elif re.search(r'[a-zA-Z]',character):
+                return 's'
+            else:
+                return 'm'
         def get_api(url):
             path = url.split('?', 1)[0]
+            # format the path
+            # /123.html?a=1,
+            paths=path.split('/')
+            if len(paths)>4:
+                file_name = paths[-1]
+                if file_name:
+                    name_format = ''
+                    if '.' in file_name:
+                        name, ext = file_name.split('.')[0], file_name.split('.')[1]
+                        # if len(name)>10:
+                        for i in name:
+                            type = which_type(i)
+                            name_format += type
+                        name_format += ext
+                        paths.pop()
+                        path = '/'.join(paths) + '/' + name_format
+                    else:
+                        for i in file_name:
+                            type = which_type(i)
+                            name_format += type
+                        paths.pop()
+                        path = '/'.join(paths) + '/' + name_format
             params = url.split('?', 1)[1]
-            params_key_tup = (i.split('=', 1)[0] for i in params.split('&'))
+            params_key_list = [i.split('=', 1)[0] for i in params.split('&')]
+            # sort by first character's ascii
+            params_key_list.sort()
             # Method and path is joined with @@@, params's name is joined with '$$$'
-            api = '@@@'.join([path, '$$$'.join(params_key_tup)])
+            api = '@@@'.join([path, '$$$'.join(params_key_list)])
             api = api.strip('/')
             return api
-
+        
         def filter(url):
             if '?' not in url:
                 return False
