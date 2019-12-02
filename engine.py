@@ -364,7 +364,7 @@ class Scan(Process):
                     for location, payload, match in self.PAYLOADS:
                         if location in position:
                             new_url = change_by_param(url, param, payload)
-                            case = Case(vul='Reflected XSS',method='GET',url=new_url,headers=headers,body='',args=(location,match))
+                            case = Case(vul='Reflected XSS',method='GET',url=new_url,headers=headers,body='',args=(location,match,param,value))
                             rfxss_case_list.append(case)
                 return rfxss_case_list
             elif method == 'POST':
@@ -373,7 +373,7 @@ class Scan(Process):
                     for location, payload, match in self.PAYLOADS:
                         if location in position:
                             new_body = body.replace(value, payload)
-                            case = Case(vul='Reflected XSS',method='POST',url=url,headers=headers,body=new_body,args=(location,match))
+                            case = Case(vul='Reflected XSS',method='POST',url=url,headers=headers,body=new_body,args=(location,match,param,value))
                             rfxss_case_list.append(case)
                 return rfxss_case_list
 
@@ -400,10 +400,10 @@ class Verify():
     ERROR_COUNT=0
     @staticmethod
     def verify(response,args):
+        match = args[1]
+        location = args[0]
         if isinstance(response,unicode):
             content=response
-            match = args[1]
-            location = args[0]
             # test tag
             if location == 'html' and re.search(match, content):
                 bs = BeautifulSoup(content, 'lxml')
@@ -414,8 +414,6 @@ class Verify():
                 return True
         else:
             content = response.read()
-            match = args[1]
-            location = args[0]
             if location == 'html' and re.search(match, content):
                 bs = BeautifulSoup(content, 'lxml')
                 xsshtml_tag_list = bs.find_all('xsshtml')
@@ -432,13 +430,15 @@ class Verify():
         headers=case.headers
         body = case.body
         args=case.args
+        old_param = args[2]
+        old_value = args[3]
         print 'Verify case use:\n%s'%url
         # time out
         with gevent.Timeout(10, False)as t:
             resp = make_request(method, url,headers,body)
             if resp:
                 if Verify.verify(resp,args):
-                    poc = gen_poc(method, url, body)
+                    poc = gen_poc(method, url, body,old_param,old_value)
                     print_warn('Found %s in %s'%(vul,poc))
                     result = (vul, url, poc)
                     return result
@@ -843,6 +843,8 @@ class Engine(object):
             paths=path.split('/')
             if len(paths)>4:
                 file_name = paths[-1]
+                if file_name=='':
+                    file_name=paths[-2]
                 if file_name:
                     name_format = ''
                     if '.' in file_name:
@@ -868,7 +870,7 @@ class Engine(object):
             api = '@@@'.join([path, '$$$'.join(params_key_list)])
             api = api.strip('/')
             return api
-        
+
         def filter(url):
             if '?' not in url:
                 return False
@@ -998,7 +1000,7 @@ class Engine(object):
                                 url_list.append(i)
                         url_list = self.deduplicate(url_list)
                         # test 10000 urls
-                        url_list = url_list[:100]
+                        # url_list = url_list[:100]
                 else:
                     print '%s not exists!' % file
             # self.multideduplicate(url_list)
