@@ -321,12 +321,7 @@ def gen_poc(*args):
     :param args:
     :return:
     """
-    method=args[0]
-    if method=='POST':
-        return '$$$$$$'.join(args)
-    else:
-        args=args[:-1]
-        return '$$$$$$'.join(args)
+    return '$$$$$$'.join(args)
 
 def gen_id():
     return ''.join(map(lambda xx: (hex(ord(xx))[2:]), os.urandom(8)))
