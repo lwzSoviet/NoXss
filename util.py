@@ -323,6 +323,24 @@ def gen_poc(*args):
     """
     return '$$$$$$'.join(args)
 
+def divide_list(a,b):
+    """
+
+    :param a: list
+    :param b: length
+    :return:
+    """
+    result=[]
+    group_number=len(a)/b
+    start=0
+    for i in range(group_number):
+        end=(i+1)*b
+        result.append(a[start:end])
+        start=end
+    if len(a)>end:
+        result.append(a[end:])
+    return result
+
 def gen_id():
     return ''.join(map(lambda xx: (hex(ord(xx))[2:]), os.urandom(8)))
 
@@ -369,4 +387,3 @@ def print_info(msg):
 
 if __name__=="__main__":
     pass
-    gen_poc('1','adsds')

@@ -24,7 +24,7 @@ from config import TRAFFIC_DIR, REQUEST_ERROR, REDIRECT, MULTIPART
 from cookie import get_cookie
 from model import Case, HttpRequest, HttpResponse
 from util import change_by_param, list2dict, print_info, chrome, phantomjs, getResponseHeaders, check_type, add_cookie, \
-    get_domain_from_url, print_warn, dict2str, str2dict
+    get_domain_from_url, print_warn, dict2str, str2dict, divide_list
 import gevent
 from gevent import pool
 from util import make_request, gen_poc
@@ -106,9 +106,19 @@ class Traffic_generator(Process):
                 traffic_list.append(i.value)
         # save traffic for rescan.
         traffic_path=Engine.get_traffic_path(self.id)
-        with open(traffic_path,'w')as traffic_f:
-            cPickle.dump(traffic_list,traffic_f)
-            print_info('Traffic of %s has been saved to %s.'%(self.id,traffic_path))
+        # slice traffic if too large
+        if len(traffic_list) > 5000:
+            traffic_divided_path = []
+            traffic_divided = divide_list(traffic_list, 5000)
+            for i in range(len(traffic_divided)):
+                traffic_divided_path.append(traffic_path + str(i))
+                with open(traffic_path + str(i), 'w')as traffic_f:
+                    cPickle.dump(traffic_divided[i], traffic_f)
+            print_info('Traffic of %s has been divided and saved to %s.' % (self.id, ','.join(traffic_divided_path)))
+        else:
+            with open(traffic_path, 'w')as traffic_f:
+                cPickle.dump(traffic_list, traffic_f)
+                print_info('Traffic of %s has been saved to %s.' % (self.id, traffic_path))
 
 class Detector():
     """
@@ -715,12 +725,17 @@ class Engine(object):
         self.browser=browser
 
     def put_queue(self):
-        traffic_path=self.get_traffic_path(self.id)
-        with open(traffic_path)as f:
-            traffic_list=cPickle.load(f)
-            print 'Start to put traffic into traffic_queue,Total is %s.'%len(traffic_list)
-            for traffic in traffic_list:
-                traffic_queue.put(traffic)
+        traffic_path=[]
+        files=os.listdir(TRAFFIC_DIR)
+        for i in files:
+            if re.search(self.id+'.traffic\d',i):
+                traffic_path.append(os.path.join(TRAFFIC_DIR,i))
+        for i in traffic_path:
+            with open(i)as f:
+                traffic_list = cPickle.load(f)
+                print 'Start to put traffic( used %s) into traffic_queue,Total is %s.' % (i,len(traffic_list))
+                for traffic in traffic_list:
+                    traffic_queue.put(traffic)
 
     def send_end_sig(self):
         for i in range(self.process):
@@ -910,9 +925,19 @@ class Engine(object):
             saved_traffic_list=[i for i in traffic_list]
             # save traffic for rescan.
             traffic_path = Engine.get_traffic_path(self.id)
-            with open(traffic_path, 'w')as traffic_f:
-                cPickle.dump(saved_traffic_list, traffic_f)
-                print_info('Traffic of %s has been saved to %s.' % (self.id, traffic_path))
+            # slice traffic if too large
+            if len(saved_traffic_list)>5000:
+                traffic_divided_path=[]
+                traffic_divided=divide_list(saved_traffic_list,5000)
+                for i in range(len(traffic_divided)):
+                    traffic_divided_path.append(traffic_path+str(i))
+                    with open(traffic_path+str(i), 'w')as traffic_f:
+                        cPickle.dump(traffic_divided[i], traffic_f)
+                print_info('Traffic of %s has been divided and saved to %s.' % (self.id, ','.join(traffic_divided_path)))
+            else:
+                with open(traffic_path, 'w')as traffic_f:
+                    cPickle.dump(saved_traffic_list, traffic_f)
+                    print_info('Traffic of %s has been saved to %s.' % (self.id, traffic_path))
 
     def save_request_exception(self):
         if len(REQUEST_ERROR)>0:
@@ -974,11 +999,17 @@ class Engine(object):
                 url_list[i]=urllib.unquote(url_list[i])
         return url_list
 
+    def is_scanned(self):
+        files = os.listdir(TRAFFIC_DIR)
+        for i in files:
+            if re.search(self.id + '\.traffic\d', i):
+                return True
+
     def start(self):
         # check if traffic_path exists.
         traffic_path=self.get_traffic_path(self.id)
-        if os.path.exists(traffic_path):
-            print 'Task %s has been scanned,Rescan from %s.'%(self.id,traffic_path)
+        if self.is_scanned():
+            print 'Task %s has been scanned,Rescan.'%self.id
             self.put_queue()
             self.send_end_sig()
         elif self.burp:
@@ -986,8 +1017,20 @@ class Engine(object):
             self.send_end_sig()
             # save burp traffic
             if burp_traffic:
-                with open(traffic_path,'w')as f:
-                    cPickle.dump(burp_traffic,f)
+                # slice traffic if too large
+                if len(burp_traffic) > 5000:
+                    traffic_divided_path = []
+                    traffic_divided = divide_list(burp_traffic, 5000)
+                    for i in range(len(traffic_divided)):
+                        traffic_divided_path.append(traffic_path + str(i))
+                        with open(traffic_path + str(i), 'w')as traffic_f:
+                            cPickle.dump(traffic_divided[i], traffic_f)
+                    print_info(
+                        'Traffic of %s has been divided and saved to %s.' % (self.id, ','.join(traffic_divided_path)))
+                else:
+                    with open(traffic_path, 'w')as traffic_f:
+                        cPickle.dump(traffic_list, traffic_f)
+                        print_info('Traffic of %s has been saved to %s.' % (self.id, traffic_path))
         else:
             if self.url != '':
                 url_list=[self.url]
@@ -1001,7 +1044,7 @@ class Engine(object):
                                 url_list.append(i)
                         url_list = self.deduplicate(url_list)
                         # test 10000 urls
-                        # url_list = url_list[:100]
+                        # url_list = url_list[:200]
                 else:
                     print '%s not exists!' % file
             # self.multideduplicate(url_list)
