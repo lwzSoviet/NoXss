@@ -32,11 +32,11 @@ try:
     from bs4 import BeautifulSoup
 except ImportError, e:
     print e
-def _pickle_method(m):
-    if m.im_self is None:
-        return getattr, (m.im_class, m.im_func.func_name)
-    else:
-        return getattr, (m.im_self, m.im_func.func_name)
+# def _pickle_method(m):
+#     if m.im_self is None:
+#         return getattr, (m.im_class, m.im_func.func_name)
+#     else:
+#         return getattr, (m.im_self, m.im_func.func_name)
 
 
 burp_traffic = []
@@ -257,7 +257,7 @@ class Detector():
                                     # replace ' ' to ''
                                     js_code = js_code.replace(' ', '')
                                     if value in js_code:
-                                        if re.search('\'[^\"]*?' + re.escape(value) + '[^\"]*?\'', js_code, re.I):
+                                        if re.search('\'[^\"\']*?' + re.escape(value) + '[^\"\']*?\'', js_code, re.I):
                                             position.append('jssq')
                                         else:
                                             position.append('jsdq')
@@ -269,13 +269,13 @@ class Detector():
                                     if value in js_code:
                                         if re.search('\'[^\"]*?' + re.escape(value) + '[^\"]*?\'', js_code, re.I):
                                             position.append('jssq')
-                                        if re.search('[+\\-*/%=]{value}[^"\']*?;|[+\\-*/%=]{value}[^"\']*?;'.format(
+                                        if re.search('[+\\-*/%=]{value}[^\"\']*?;|[+\\-*/%=]{value}[^\"\']*?;'.format(
                                                 value=re.escape(value)), js_code):
                                             position.append('jsnq')
                                         # func call
                                         # elif re.search(,js_code,re.I):
                                         #     pass
-                                        if re.search('\"[^\']*?' + re.escape(value) + '[^\']*?\"',js_code,re.I):
+                                        if re.search('\"[^\'\"]{0,}?' + re.escape(value) + '[^\'\"]*?\"',js_code,re.I):
                                             position.append('jsdq')
                         if re.search(html_reg, response_data):
                             position.append('html')
@@ -978,7 +978,7 @@ class Engine(object):
         # check if traffic_path exists.
         traffic_path=self.get_traffic_path(self.id)
         if os.path.exists(traffic_path):
-            print 'Task %s has been scanned.Rescan from %s.'%(self.id,traffic_path)
+            print 'Task %s has been scanned,Rescan from %s.'%(self.id,traffic_path)
             self.put_queue()
         elif self.burp:
             self.put_burp_to_trafficqueue()
@@ -1026,6 +1026,7 @@ class Engine(object):
                     traffic_queue.put((request,response))
                 self.send_end_sig()
             else:
+                t1=time.time()
                 # traffic genetator
                 print 'Start to request url with urllib2.'
                 traffic_maker = Traffic_generator(self.id, url_list)
@@ -1034,11 +1035,13 @@ class Engine(object):
                 self.put_queue()
                 self.send_end_sig()
         # scan
+        t2=time.time()
         task = [Scan() for i in range(self.process)]
         for i in task:
             i.start()
         for i in task:
             i.join()
+        t3=time.time()
         # save reflect for analyzing
         self.save_reflect()
         if case_list:
@@ -1051,6 +1054,8 @@ class Engine(object):
                 # verify,async
                 verify_result = Verify.verify_async(case_list)
                 self.save_analysis()
+                t4=time.time()
+                print 'traffic-gen:%s,scan:%s,verify:%s'%(t2-t1,t3-t2,t4-t3)
                 return verify_result
 
 if __name__=='__main__':
