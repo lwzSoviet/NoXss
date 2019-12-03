@@ -8,6 +8,7 @@
     @Time    : 19-10-9 上午10:13
 """
 import argparse
+from multiprocessing import cpu_count
 from banner import banner
 from engine import Engine
 from util import print_info, save, gen_id, get_domain_from_url
@@ -43,8 +44,8 @@ if __name__=="__main__":
     browser=''
     if args.browser:
         browser=args.browser
-    # default use 4 processes if many urls
-    num=4
+    # default use number of cpu-core as processes
+    num=cpu_count()
     if args.process:
         num=args.process
     if args.cookie:
@@ -78,3 +79,5 @@ if __name__=="__main__":
     # 记录头部过于复杂的请求
     # 记录multipart请求
     # reflect准确率
+    # afsrc cache DOS
+    # 生产-消费

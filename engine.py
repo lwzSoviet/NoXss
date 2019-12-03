@@ -980,6 +980,7 @@ class Engine(object):
         if os.path.exists(traffic_path):
             print 'Task %s has been scanned,Rescan from %s.'%(self.id,traffic_path)
             self.put_queue()
+            self.send_end_sig()
         elif self.burp:
             self.put_burp_to_trafficqueue()
             self.send_end_sig()
