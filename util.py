@@ -21,6 +21,7 @@ from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 from config import RESULT_DIR, REQUEST_ERROR, REDIRECT
 from cookie import get_cookie, get_cookie_ip, is_ip, get_cookies_list
+from httplib import BadStatusLine
 
 proxy_info={'host':'127.0.0.1',
             'port':8080
@@ -103,9 +104,12 @@ def get_domain_from_url(url):
 def list2dict(list):
     dict={}
     for i in list:
-        key,value=i.split(': ')[0],i.split(': ')[1]
-        value=value.replace('\r\n','')
-        dict[key]=value
+        try:
+            key, value = i.split(': ')[0], i.split(': ')[1]
+            value = value.replace('\r\n', '')
+            dict[key] = value
+        except IndexError:
+            pass
     return dict
 
 # cookie str to dict
@@ -203,6 +207,8 @@ def make_request(method,url,headers,body):
             REQUEST_ERROR.append(('make_request()', url, 'ssl.CertificateError'))
         except ValueError, e:
             print e
+        except BadStatusLine,e:
+            print e
     elif method=='POST':
         req = urllib2.Request(url, data=body, headers=headers)
         try:
@@ -215,6 +221,8 @@ def make_request(method,url,headers,body):
         except CertificateError:
             REQUEST_ERROR.append(('make_request()', url, 'ssl.CertificateError'))
         except ValueError, e:
+            print e
+        except BadStatusLine,e:
             print e
 
 def chrome():

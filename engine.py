@@ -78,6 +78,8 @@ class Traffic_generator(Process):
                 REQUEST_ERROR.append(('gen_traffic()', url, 'ssl.CertificateError'))
             except ValueError,e:
                 print e
+            except BadStatusLine,e:
+                print e
             else:
                 if resp.url != url:
                     REDIRECT.append(url)
@@ -104,21 +106,8 @@ class Traffic_generator(Process):
         for i in tasks:
             if i.value is not None:
                 traffic_list.append(i.value)
-        # save traffic for rescan.
-        traffic_path=Engine.get_traffic_path(self.id)
-        # slice traffic if too large
-        if len(traffic_list) > 5000:
-            traffic_divided_path = []
-            traffic_divided = divide_list(traffic_list, 5000)
-            for i in range(len(traffic_divided)):
-                traffic_divided_path.append(traffic_path + str(i))
-                with open(traffic_path + str(i), 'w')as traffic_f:
-                    cPickle.dump(traffic_divided[i], traffic_f)
-            print_info('Traffic of %s has been divided and saved to %s.' % (self.id, ','.join(traffic_divided_path)))
-        else:
-            with open(traffic_path, 'w')as traffic_f:
-                cPickle.dump(traffic_list, traffic_f)
-                print_info('Traffic of %s has been saved to %s.' % (self.id, traffic_path))
+        # save traffic for rescan
+        Engine.save_traffic(traffic_list,self.id)
 
 class Detector():
     """
@@ -920,24 +909,31 @@ class Engine(object):
                 with open(reflect_path, 'w') as f:
                     cPickle.dump(saved_list, f)
 
-    def save_traffic(self):
-        if len(traffic_list) > 0:
-            saved_traffic_list=[i for i in traffic_list]
-            # save traffic for rescan.
-            traffic_path = Engine.get_traffic_path(self.id)
+    @staticmethod
+    def save_traffic(traffic_obj_list,id,piece=5000):
+        """
+
+        :param traffic_obj_list:
+        :param id: task id
+        :param piece: default 5000
+        :return:
+        """
+        traffic_path=Engine.get_traffic_path(id)
+        if len(traffic_obj_list) > 0:
+            saved_traffic_list=[i for i in traffic_obj_list]
             # slice traffic if too large
-            if len(saved_traffic_list)>5000:
+            if len(saved_traffic_list)>piece:
                 traffic_divided_path=[]
-                traffic_divided=divide_list(saved_traffic_list,5000)
+                traffic_divided=divide_list(saved_traffic_list,piece)
                 for i in range(len(traffic_divided)):
                     traffic_divided_path.append(traffic_path+str(i))
                     with open(traffic_path+str(i), 'w')as traffic_f:
                         cPickle.dump(traffic_divided[i], traffic_f)
-                print_info('Traffic of %s has been divided and saved to %s.' % (self.id, ','.join(traffic_divided_path)))
+                print_info('Traffic of %s has been divided and saved to %s.' % (id, ','.join(traffic_divided_path)))
             else:
                 with open(traffic_path, 'w')as traffic_f:
                     cPickle.dump(saved_traffic_list, traffic_f)
-                    print_info('Traffic of %s has been saved to %s.' % (self.id, traffic_path))
+                    print_info('Traffic of %s has been saved to %s.' % (id, traffic_path))
 
     def save_request_exception(self):
         if len(REQUEST_ERROR)>0:
@@ -1017,20 +1013,7 @@ class Engine(object):
             self.send_end_sig()
             # save burp traffic
             if burp_traffic:
-                # slice traffic if too large
-                if len(burp_traffic) > 5000:
-                    traffic_divided_path = []
-                    traffic_divided = divide_list(burp_traffic, 5000)
-                    for i in range(len(traffic_divided)):
-                        traffic_divided_path.append(traffic_path + str(i))
-                        with open(traffic_path + str(i), 'w')as traffic_f:
-                            cPickle.dump(traffic_divided[i], traffic_f)
-                    print_info(
-                        'Traffic of %s has been divided and saved to %s.' % (self.id, ','.join(traffic_divided_path)))
-                else:
-                    with open(traffic_path, 'w')as traffic_f:
-                        cPickle.dump(traffic_list, traffic_f)
-                        print_info('Traffic of %s has been saved to %s.' % (self.id, traffic_path))
+                self.save_traffic(burp_traffic,self.id)
         else:
             if self.url != '':
                 url_list=[self.url]
@@ -1058,7 +1041,7 @@ class Engine(object):
                     i.start()
                 for i in render_task:
                     i.join()
-                self.save_traffic()
+                self.save_traffic(traffic_list,self.id)
                 # put traffic tp queue
                 for i in range(len(traffic_list)):
                     request = traffic_list[i][0]
