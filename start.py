@@ -61,7 +61,7 @@ if __name__=="__main__":
         else:
             from cookie import save_cookie
             save_cookie(args.cookie, domain)
-    if url or file or burp:
+    if url or file or burp or args.id:
         if args.id:
             id=args.id
         else:
@@ -73,11 +73,4 @@ if __name__=="__main__":
         else:
             print_info('No xss found!')
     else:
-        print 'error: missing a mandatory option (--url, --file, --burp)!'
-
-    # 存储型xss解决方案
-    # 记录头部过于复杂的请求
-    # 记录multipart请求
-    # reflect准确率
-    # afsrc cache DOS
-    # 生产-消费
+        print 'error: missing a mandatory option (--url, --file, --burp, --id)!'
