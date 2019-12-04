@@ -107,3 +107,6 @@ venv.bak/
 /result
 /cookie
 .idea/
+
+# browser's log
+ghostdriver.log
