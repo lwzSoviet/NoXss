@@ -40,12 +40,15 @@ if __name__=="__main__":
         file=args.file
     if args.burp:
         burp=args.burp
-    # use chrome default.
+    # default use number of cpu-core as processes
+    num=cpu_count()
     browser=''
     if args.browser:
         browser=args.browser
-    # default use number of cpu-core as processes
-    num=cpu_count()
+        # default 2 if use browser
+        num=2
+        if args.url:
+            num=1
     if args.process:
         num=args.process
     if args.cookie:
