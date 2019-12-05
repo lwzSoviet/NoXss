@@ -350,7 +350,7 @@ class Processor():
             try:
                 func()
             except Func_timeout_error,e:
-                print e
+                print str(e)+self.request.url
 
 
 class Scan(Process):
@@ -874,6 +874,9 @@ class Engine(object):
                         for i in name:
                             type = which_type(i)
                             name_format += type
+                        # only 'd',format length
+                        if 's' not in name_format and 'm' not in name_format:
+                            name_format='d'
                         name_format += ext
                         paths.pop()
                         path = '/'.join(paths) + '/' + name_format
@@ -881,6 +884,9 @@ class Engine(object):
                         for i in file_name:
                             type = which_type(i)
                             name_format += type
+                        # only 'd',format length
+                        if 's' not in name_format and 'm' not in name_format:
+                            name_format='d'
                         paths.pop()
                         path = '/'.join(paths) + '/' + name_format
             params = url.split('?', 1)[1]
@@ -1014,16 +1020,16 @@ class Engine(object):
                 url_list[i] = urllib.unquote(url_list[i])
         return url_list
 
-    def is_scanned(self):
+    @staticmethod
+    def is_scanned(id):
         files = os.listdir(TRAFFIC_DIR)
         for i in files:
-            if re.search(self.id + '\.traffic\d', i):
+            if re.search(id + '\.traffic\d', i):
                 return True
 
     def start(self):
         # check if traffic_path exists.
-        traffic_path = self.get_traffic_path(self.id)
-        if self.is_scanned():
+        if self.is_scanned(self.id):
             print 'Task %s has been scanned,Rescan.' % self.id
             self.put_queue()
             self.send_end_sig()
@@ -1036,7 +1042,7 @@ class Engine(object):
         else:
             if self.url != '':
                 url_list = [self.url]
-            else:
+            elif self.file:
                 if os.path.exists(self.file):
                     with open(self.file)as f:
                         url_list = []
@@ -1049,7 +1055,7 @@ class Engine(object):
                         # url_list = url_list[:100]
                 else:
                     print '%s not exists!' % self.file
-            # self.multideduplicate(url_list)
+                    exit(0)
             # decode
             url_list = self.urldecode(url_list)
             if self.browser:

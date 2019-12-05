@@ -68,6 +68,9 @@ if __name__=="__main__":
     if url or file or burp or args.id:
         if args.id:
             id=args.id
+            if not Engine.is_scanned(id):
+                print 'Task %s not found,exit.'
+                exit(0)
         else:
             id=gen_id()
         engine=Engine(id=id,url=url,file=file,burp=burp,process=num,browser=browser)

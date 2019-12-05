@@ -412,12 +412,3 @@ def print_info(msg):
 
 if __name__=="__main__":
     pass
-    import time
-    @functimeout(3)
-    def aaaa():
-        time.sleep(5)
-        print 1
-    try:
-        aaaa()
-    except Func_timeout_error,e:
-        print e
