@@ -388,22 +388,19 @@ def save(result,id):
             json.dump(result_dict, json_f)
             print_info('The result of %s has been saved to %s'%(id,result_file))
 
-class TimeoutException(Exception):
+class Func_timeout_error(Exception):
     def __str__(self):
         return '<func timeout!!!>'
 
-def timeout(maxtime):
+def functimeout(maxtime):
     def wrap(func):
         def inner(*args):
             def handle(signum,frame):
-                raise TimeoutException
+                raise Func_timeout_error
             signal.signal(signal.SIGALRM, handle)
             signal.alarm(maxtime)
-            try:
-                result=func(*args)
-                return result
-            except TimeoutException, e:
-                print e
+            result=func(*args)
+            return result
         return inner
     return wrap
 
@@ -415,3 +412,12 @@ def print_info(msg):
 
 if __name__=="__main__":
     pass
+    import time
+    @functimeout(3)
+    def aaaa():
+        time.sleep(5)
+        print 1
+    try:
+        aaaa()
+    except Func_timeout_error,e:
+        print e

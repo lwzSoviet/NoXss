@@ -23,12 +23,10 @@ from selenium.common.exceptions import TimeoutException, UnexpectedAlertPresentE
 from config import TRAFFIC_DIR, REQUEST_ERROR, REDIRECT, MULTIPART
 from cookie import get_cookie
 from model import Case, HttpRequest, HttpResponse
-from util import timeout
-from util import change_by_param, list2dict, print_info, chrome, phantomjs, getResponseHeaders, check_type, add_cookie, \
-    get_domain_from_url, print_warn, dict2str, str2dict, divide_list
+from util import functimeout, Func_timeout_error, change_by_param, list2dict, print_info, chrome, phantomjs, getResponseHeaders, check_type, add_cookie, \
+    get_domain_from_url, print_warn, dict2str, str2dict, divide_list,make_request, gen_poc
 import gevent
 from gevent import pool
-from util import make_request, gen_poc
 try:
     from bs4 import BeautifulSoup
 except ImportError, e:
@@ -320,7 +318,7 @@ class Processor():
         if rtn:
             self.param_dict = rtn
 
-    @timeout(30)
+    @functimeout(30)
     def process_reflect(self):
         for param, value in self.param_dict.items():
             # improve accuracy
@@ -351,7 +349,7 @@ class Processor():
             func = getattr(self, i)
             try:
                 func()
-            except TimeoutException,e:
+            except Func_timeout_error,e:
                 print e
 
 
@@ -930,12 +928,12 @@ class Engine(object):
                     cPickle.dump(saved_list, f)
 
     @staticmethod
-    def save_traffic(traffic_obj_list, id, piece=5000):
+    def save_traffic(traffic_obj_list, id, piece=3000):
         """
 
         :param traffic_obj_list:
         :param id: task id
-        :param piece: default 5000
+        :param piece: default 3000
         :return:
         """
         traffic_path = Engine.get_traffic_path(id)
