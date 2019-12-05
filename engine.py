@@ -23,12 +23,12 @@ from selenium.common.exceptions import TimeoutException, UnexpectedAlertPresentE
 from config import TRAFFIC_DIR, REQUEST_ERROR, REDIRECT, MULTIPART
 from cookie import get_cookie
 from model import Case, HttpRequest, HttpResponse
+from util import timeout
 from util import change_by_param, list2dict, print_info, chrome, phantomjs, getResponseHeaders, check_type, add_cookie, \
     get_domain_from_url, print_warn, dict2str, str2dict, divide_list
 import gevent
 from gevent import pool
 from util import make_request, gen_poc
-
 try:
     from bs4 import BeautifulSoup
 except ImportError, e:
@@ -210,7 +210,7 @@ class Detector():
     @staticmethod
     def make_reg(value):
         js_reg = re.compile('<script.*?>.*?' + re.escape(value) + '.*?</script>', re.S)
-        html_reg = re.compile('<.*?>.*?' + re.escape(value) + '.*?</.*?>', re.S)
+        html_reg = re.compile('<.*?>.*?' + re.escape(value) + '.*?</[a-zA-Z]{1,10}?>', re.S)
         tag_reg = re.compile('=\"' + re.escape(value) + '\"|=\'' + re.escape(value) + '\'', re.M)
         func_reg = re.compile('\\(.*?' + re.escape(value) + '.*?\\)')
         reg_list = [js_reg, html_reg, tag_reg, func_reg]
@@ -320,6 +320,7 @@ class Processor():
         if rtn:
             self.param_dict = rtn
 
+    @timeout(30)
     def process_reflect(self):
         for param, value in self.param_dict.items():
             # improve accuracy
@@ -348,7 +349,10 @@ class Processor():
     def run(self):
         for i in Processor.get_process_chains():
             func = getattr(self, i)
-            func()
+            try:
+                func()
+            except TimeoutException,e:
+                print e
 
 
 class Scan(Process):
@@ -1044,7 +1048,7 @@ class Engine(object):
                                 url_list.append(i)
                         url_list = self.deduplicate(url_list)
                         # test 10000 urls
-                        url_list = url_list[:100]
+                        # url_list = url_list[:100]
                 else:
                     print '%s not exists!' % self.file
             # self.multideduplicate(url_list)

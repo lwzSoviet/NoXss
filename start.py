@@ -32,16 +32,17 @@ if __name__=="__main__":
         check_install()
     # default
     url,file,burp='','',''
+    # default use number of cpu-core as processes
+    num=cpu_count()
     if args.url:
         from check import check_url
         url=args.url
+        num=1
         check_url(url)
     if args.file:
         file=args.file
     if args.burp:
         burp=args.burp
-    # default use number of cpu-core as processes
-    num=cpu_count()
     browser=''
     if args.browser:
         browser=args.browser
@@ -77,3 +78,5 @@ if __name__=="__main__":
             print_info('No xss found!')
     else:
         print 'error: missing a mandatory option (--url, --file, --burp, --id)!'
+
+        # pi

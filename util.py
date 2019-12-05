@@ -11,6 +11,7 @@ import datetime
 import json
 import os
 import re
+import signal
 import urllib
 import urllib2
 import urlparse
@@ -386,6 +387,25 @@ def save(result,id):
         with open(result_file,'w') as json_f:
             json.dump(result_dict, json_f)
             print_info('The result of %s has been saved to %s'%(id,result_file))
+
+class TimeoutException(Exception):
+    def __str__(self):
+        return '<func timeout!!!>'
+
+def timeout(maxtime):
+    def wrap(func):
+        def inner(*args):
+            def handle(signum,frame):
+                raise TimeoutException
+            signal.signal(signal.SIGALRM, handle)
+            signal.alarm(maxtime)
+            try:
+                result=func(*args)
+                return result
+            except TimeoutException, e:
+                print e
+        return inner
+    return wrap
 
 def print_warn(msg):
     print '\033[1;31m{}\033[0m'.format(msg)
