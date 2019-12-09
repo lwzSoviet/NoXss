@@ -805,8 +805,9 @@ class Engine(object):
                                 burp_traffic.append((request, response))
                                 traffic_queue.put((request, response))
                         elif request.method == 'POST' and request.body:
+                            content_type=request.get_header('Content-Type')
                             # save multipart
-                            if 'multipart/form-data; boundary=' in request.get_header('Content-Type'):
+                            if content_type and 'multipart/form-data; boundary=' in content_type:
                                 MULTIPART.append((request, response))
                             else:
                                 burp_traffic.append((request, response))

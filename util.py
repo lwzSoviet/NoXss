@@ -186,7 +186,10 @@ def getheader_without_cookie(target_domain):
 def make_request(method,url,headers,body):
     domain = get_domain_from_url(url)
     if headers:
-        pass
+        # delete some needless header
+        for key in headers.keys():
+            if key in ['Accept-Encoding','Content-Type','Accept-Language','Accept']:
+                del headers[key]
     else:
         headers = getheader_dict(domain)
     # proxy(127.0.0.1:8080)
@@ -201,6 +204,7 @@ def make_request(method,url,headers,body):
             # save redirect
             if resp.url!=url:
                 REDIRECT.append(url)
+            a=resp.read()
             return resp
         except URLError, e:
             REQUEST_ERROR.append(('make_request()',url,e.reason))
