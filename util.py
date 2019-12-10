@@ -188,7 +188,7 @@ def make_request(method,url,headers,body):
     if headers:
         # delete some needless header
         for key in headers.keys():
-            if key in ['Accept-Encoding','Content-Type','Accept-Language','Accept']:
+            if key in ['Accept-Encoding','Content-Type','Accept-Language','Accept','Connection']:
                 del headers[key]
     else:
         headers = getheader_dict(domain)
@@ -204,7 +204,6 @@ def make_request(method,url,headers,body):
             # save redirect
             if resp.url!=url:
                 REDIRECT.append(url)
-            a=resp.read()
             return resp
         except URLError, e:
             REQUEST_ERROR.append(('make_request()',url,e.reason))

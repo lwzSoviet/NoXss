@@ -451,7 +451,7 @@ class Verify():
         old_value = args[3]
         print 'Verify case use:\n%s' % url
         # time out
-        with gevent.Timeout(10, False)as t:
+        with gevent.Timeout(20, False)as t:
             resp = make_request(method, url, headers, body)
             if resp:
                 if Verify.verify(resp, args):
@@ -732,7 +732,7 @@ class Engine(object):
         traffic_path = []
         files = os.listdir(TRAFFIC_DIR)
         for i in files:
-            if re.search(self.id + '.traffic\d', i):
+            if re.search(self.id + '.traffic\d*', i):
                 traffic_path.append(os.path.join(TRAFFIC_DIR, i))
         for i in traffic_path:
             with open(i)as f:
