@@ -63,7 +63,7 @@ def save_cookie_ip(cookie,ip,expire_time=3600):
 
 # get cookie
 def get_cookie(target_domain,):
-    try:
+    if '.' in target_domain:
         domain_scope = '.' + target_domain.split('.')[-2] + '.' + target_domain.split('.')[-1]
         cookie_file_path = os.path.join(COOKIE_DIR, '_'.join([domain_scope, 'cookie']))
         if os.path.exists(cookie_file_path):
@@ -79,28 +79,23 @@ def get_cookie(target_domain,):
         # cookie not exists
         else:
             print 'Cookie of %s not exist!!!' % domain_scope
-    except IndexError,e:
-        print e
 
 # get cookie-ip
 def get_cookie_ip(ip,):
-    try:
-        domain_scope = ip
-        cookie_file_path = os.path.join(COOKIE_DIR, '_'.join([domain_scope, 'cookie']))
-        if os.path.exists(cookie_file_path):
-            with open(cookie_file_path, "r")as cookie_file:
-                cookie_file_list = cookie_file.readlines()
-                expire = cookie_file_list[2]
-                # check expire
-                if int(time.time()) < int(expire):
-                    cookies_text = cookie_file_list[0].strip()
-                    return cookies_text
-                else:
-                    print 'Cookie of %s is expired!!!' % domain_scope
-        else:
-            print 'Cookie of %s not exist!!!' % domain_scope
-    except IndexError,e:
-        print e
+    domain_scope = ip
+    cookie_file_path = os.path.join(COOKIE_DIR, '_'.join([domain_scope, 'cookie']))
+    if os.path.exists(cookie_file_path):
+        with open(cookie_file_path, "r")as cookie_file:
+            cookie_file_list = cookie_file.readlines()
+            expire = cookie_file_list[2]
+            # check expire
+            if int(time.time()) < int(expire):
+                cookies_text = cookie_file_list[0].strip()
+                return cookies_text
+            else:
+                print 'Cookie of %s is expired!!!' % domain_scope
+    else:
+        print 'Cookie of %s not exist!!!' % domain_scope
 
 def try_cookie(domain):
     # try to find cookie from cookie/ and add it to DEFAULT_HEADER
