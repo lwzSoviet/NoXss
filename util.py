@@ -23,6 +23,7 @@ from selenium.webdriver import DesiredCapabilities
 from config import RESULT_DIR, REQUEST_ERROR, REDIRECT
 from cookie import get_cookie, get_cookie_ip, is_ip, get_cookies_list
 from httplib import BadStatusLine
+from socket import  error as SocketError
 
 proxy_info={'host':'127.0.0.1',
             'port':8080
@@ -213,6 +214,8 @@ def make_request(method,url,headers,body):
             print e
         except BadStatusLine,e:
             print e
+        except SocketError,e:
+            print e
     elif method=='POST':
         req = urllib2.Request(url, data=body, headers=headers)
         try:
@@ -227,6 +230,8 @@ def make_request(method,url,headers,body):
         except ValueError, e:
             print e
         except BadStatusLine,e:
+            print e
+        except SocketError,e:
             print e
 
 def chrome():

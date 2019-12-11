@@ -27,6 +27,7 @@ from util import functimeout, Func_timeout_error, change_by_param, list2dict, pr
     get_domain_from_url, print_warn, dict2str, str2dict, divide_list,make_request, gen_poc
 import gevent
 from gevent import pool
+from socket import error as SocketError
 try:
     from bs4 import BeautifulSoup
 except ImportError, e:
@@ -80,6 +81,8 @@ class Traffic_generator(Process):
             except ValueError, e:
                 print e
             except BadStatusLine, e:
+                print e
+            except SocketError, e:
                 print e
             else:
                 if resp.url != url:
@@ -274,7 +277,16 @@ class Detector():
                                             position.append('jssq')
                                         if re.search('[+\\-*/%=]{value}[^\"\']*?;|[+\\-*/%=]{value}[^\"\']*?;'.format(
                                                 value=re.escape(value)), js_code):
-                                            position.append('jsnq')
+                                            jsnq_match=re.search('[+\\-*/%=]{value}[^\"\']*?;|[+\\-*/%=]{value}[^\"\']*?;'.format(
+                                                value=re.escape(value)), js_code).group()
+                                            # in json
+                                            if re.search(':\"[^\"]*?{value}[^\"]*?\"'.format(value=re.escape(value)),js_code):
+                                                pass
+                                            # include html escape
+                                            elif re.search(r'&amp;$|\\x26amp;$',jsnq_match):
+                                                pass
+                                            else:
+                                                position.append('jsnq')
                                         # func call
                                         # elif re.search(,js_code,re.I):
                                         #     pass
