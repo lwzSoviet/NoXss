@@ -234,12 +234,13 @@ def make_request(method,url,headers,body):
         except SocketError,e:
             print e
 
-def chrome():
+def chrome(headless=False):
     # support to get response status and headers
     d = DesiredCapabilities.CHROME
     d['loggingPrefs'] = {'performance': 'ALL'}
     opt = webdriver.ChromeOptions()
-    # opt.set_headless()
+    if headless:
+        opt.add_argument("--headless")
     opt.add_argument("--disable-xss-auditor")
     opt.add_argument("--disable-web-security")
     opt.add_argument("--allow-running-insecure-content")

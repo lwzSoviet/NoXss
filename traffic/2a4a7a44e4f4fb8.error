@@ -1,0 +1,8 @@
+(lp1
+(S'make_request()'
+p2
+S'http://iyfsearch.com/?dn=123456&pid=xssjs%27%3B'
+p3
+S'Internal Server Error'
+tp4
+a.

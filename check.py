@@ -39,7 +39,7 @@ def check_install():
 
 def check_url(url):
     try:
-        urllib2.urlopen(url)
+        urllib2.urlopen(url,timeout=20)
     except Exception,e:
-        print e
+        print 'Check url error: '+str(e)
         exit(0)
