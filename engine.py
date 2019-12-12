@@ -791,9 +791,13 @@ class Engine(object):
                             req_text = base64.b64decode(req_text)
                             headers_list = req_text.split('\r\n\r\n', 1)[0].split('\r\n')[1:]
                             for header in headers_list:
-                                header_key, header_value = header.split(': ')[0], header.split(': ')[1]
-                                if header_key not in req_headers.keys():
-                                    req_headers[header_key] = header_value
+                                try:
+                                    header_key, header_value = header.split(': ')[0], header.split(': ')[1]
+                                    if header_key not in req_headers.keys():
+                                        req_headers[header_key] = header_value
+                                # split header error
+                                except IndexError,e:
+                                    print e
                             body = req_text.split('\r\n\r\n', 1)[1]
                             request = HttpRequest(method, url, req_headers, body)
                         if child2.tag == 'response':
