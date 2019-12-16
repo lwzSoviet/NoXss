@@ -81,5 +81,3 @@ if __name__=="__main__":
             print_info('No xss found!')
     else:
         print 'error: missing a mandatory option (--url, --file, --burp, --id)!'
-
-        # pi

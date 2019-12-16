@@ -14,33 +14,35 @@ def is_ip(domain):
 
 # get cookie for browser
 def get_cookies_list(target_domain):
-    cookies_list = []
-    # if ip
-    if is_ip(target_domain):
-        domain_scope=target_domain
-    else:
-        domain_scope = '.' + target_domain.split('.')[-2] + '.' + target_domain.split('.')[-1]
-    cookie_file_path=os.path.join(COOKIE_DIR,'_'.join([domain_scope,'cookie']))
-    if os.path.exists(cookie_file_path):
-        with open(cookie_file_path, "r")as cookie_file:
-            cookie_file_list = cookie_file.readlines()
-            expire = cookie_file_list[2]
-            # check expire
-            if int(time.time())<int(expire):
-                cookies_text = cookie_file_list[0].strip()
-                domain = cookie_file_list[1].strip()
-                new_list = cookies_text.split(';')
-                for i in new_list:
-                    if i != '':
-                        cookie_dict = {}
-                        key = i.split('=')[0].strip()
-                        value = i.split('=')[1].strip()
-                        cookie_dict['domain'] = domain
-                        cookie_dict['name'] = key
-                        cookie_dict['value'] = value
-                        cookie_dict['path'] = '/'
-                        cookies_list.append(cookie_dict)
-    return cookies_list
+    if '.' in target_domain:
+        cookies_list = []
+        # if the domain is IP
+        if is_ip(target_domain):
+            domain_scope = target_domain
+        else:
+            # default
+            domain_scope = '.' + target_domain.split('.')[-2] + '.' + target_domain.split('.')[-1]
+        cookie_file_path = os.path.join(COOKIE_DIR, '_'.join([domain_scope, 'cookie']))
+        if os.path.exists(cookie_file_path):
+            with open(cookie_file_path, "r")as cookie_file:
+                cookie_file_list = cookie_file.readlines()
+                expire = cookie_file_list[2]
+                # check expire
+                if int(time.time()) < int(expire):
+                    cookies_text = cookie_file_list[0].strip()
+                    domain = cookie_file_list[1].strip()
+                    new_list = cookies_text.split(';')
+                    for i in new_list:
+                        if i != '':
+                            cookie_dict = {}
+                            key = i.split('=')[0].strip()
+                            value = i.split('=')[1].strip()
+                            cookie_dict['domain'] = domain
+                            cookie_dict['name'] = key
+                            cookie_dict['value'] = value
+                            cookie_dict['path'] = '/'
+                            cookies_list.append(cookie_dict)
+        return cookies_list
 
 # save cookie default expire=3600s
 def save_cookie(cookie,domain,expire_time=3600):
