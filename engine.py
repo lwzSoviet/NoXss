@@ -557,6 +557,8 @@ class Verify():
                         splited = url.split('/', 3)
                         path = '/'.join(splited)
                         blocked_urls.append(path)
+                    except UnicodeDecodeError:
+                        pass
                     else:
                         try:
                             page_source = browser.page_source
@@ -677,6 +679,8 @@ class Render(Process):
                     splited = url.split('/', 3)
                     path = '/'.join(splited)
                     blocked_urls.append(path)
+                except UnicodeDecodeError:
+                    pass
                 else:
                     try:
                         page_source = browser.page_source

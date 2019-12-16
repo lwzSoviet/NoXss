@@ -272,8 +272,9 @@ def add_cookie(browser,url):
     else:
         domain = get_domain_from_url(url)
         cookies_list = get_cookies_list(domain)
-        for i in cookies_list:
-            browser.add_cookie(i)
+        if cookies_list:
+            for i in cookies_list:
+                browser.add_cookie(i)
 
 def getResponseHeaders(type,browser):
     if type=='phantomjs':
