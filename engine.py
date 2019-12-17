@@ -19,6 +19,7 @@ import json
 import re
 import urlparse
 from ssl import CertificateError
+from xml.etree import cElementTree
 from selenium.common.exceptions import TimeoutException, UnexpectedAlertPresentException
 from config import TRAFFIC_DIR, REQUEST_ERROR, REDIRECT, MULTIPART
 from cookie import get_cookie
@@ -772,7 +773,11 @@ class Engine(object):
             from model import HttpRequest, HttpResponse
             with open(self.burp)as f:
                 xmlstr = f.read()
-            root = ET.fromstring(xmlstr)
+            try:
+                root = ET.fromstring(xmlstr)
+            except cElementTree.ParseError,e:
+                print 'Parse burpsuite data error: '+str(e)
+                exit(0)
             for child in root:
                 if child.tag == 'item':
                     req_headers = {}
