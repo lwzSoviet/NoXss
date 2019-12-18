@@ -114,7 +114,6 @@ class Traffic_generator(Process):
         # save traffic for rescan
         Engine.save_traffic(traffic_list, self.id)
 
-
 class Detector():
     """
     Do some detect-work,e.g.,detect the param and value in url(https://example.com/test?a=1&b=2--->{a:1,b:2}),
@@ -373,6 +372,9 @@ class Scan(Process):
         ('jssq', 'xssjs\';', '<script.*?xssjs\';.*?</script>'),
         ('jsnq', 'xssjs;', '<script.*?xssjs;.*?</script>'),
         ('tag', 'xsstag"', '=xsstag".*?"'),
+        # reflected in  js code's comment
+        # reflected in html's comment
+        # reflected in function call
     )
 
     def __init__(self):
