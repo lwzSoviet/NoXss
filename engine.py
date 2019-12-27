@@ -1,7 +1,7 @@
 #!/usr/bin/python2.7
 # -*- encoding: utf-8 -*-
 """
-    @Description: Core of NoXss,include many work,e.g.,preprocess,detect,scan.
+    @Description: Core of NoXss,include preprocess,detect,scan,e.g.
 
     ~~~~~~
     @Author  : longwenzhang

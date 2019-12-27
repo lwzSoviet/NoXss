@@ -1,9 +1,0 @@
-(lp1
-(S'make_request()'
-p2
-S'http://dgwestore.nestlechinese.com/weixin/asset/Show.aspx?openid=abcdef&id=%3Cxsshtml%3E%3C%2Fxsshtml%3E'
-p3
-S'Internal Server Error'
-p4
-tp5
-a.

@@ -23,7 +23,7 @@ if __name__=="__main__":
     parser.add_argument('--burp', help='scan from *.xml from burpsuite proxy.')
     parser.add_argument('--process',help='process amount.')
     parser.add_argument('--cookie',action='store',help='use cookie.')
-    parser.add_argument('--browser',action='store',help='test with browser if choose.')
+    parser.add_argument('--browser',action='store',help='scan with browser,is good at Dom-based xss but slow.')
     parser.add_argument('--save',action='store_true',help='save result to json file.')
     banner()
     args=parser.parse_args()
