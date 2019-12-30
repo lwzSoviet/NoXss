@@ -58,10 +58,11 @@ class Traffic_generator(Process):
         'User-Agent': 'Mozilla/2.0 (X11; Linux x86_64) AppleWebKit/237.36 (KHTML, like Gecko) Chrome/62.0.3322.146 Safari/237.36',
     }
 
-    def __init__(self, id, url_list):
+    def __init__(self, id, url_list,coroutine):
         Process.__init__(self)
         self.id = id
         self.url_list = url_list
+        self.coroutine=coroutine
 
     def gen_traffic(self, url):
         domain = get_domain_from_url(url)
@@ -104,7 +105,9 @@ class Traffic_generator(Process):
         from gevent import monkey
         monkey.patch_all()
         from gevent import pool
-        g_pool = pool.Pool(200)
+        # default 200
+        # g_pool = pool.Pool(200)
+        g_pool = pool.Pool(self.coroutine)
         tasks = [g_pool.spawn(self.gen_traffic, url) for url in self.url_list]
         gevent.joinall(tasks)
         traffic_list = []
@@ -479,15 +482,17 @@ class Verify():
                 Verify.ERROR_COUNT += 1
 
     @staticmethod
-    def verify_async(case_list):
+    def verify_async(case_list,coroutine):
         """
-        Verify used gevent
+        Verify used gevent lib
+        :param case_list:
+        :param coroutine:
         :return:
         """
         from gevent import monkey
         monkey.patch_all()
         result = []
-        geventPool = pool.Pool(200)
+        geventPool = pool.Pool(coroutine)
         tasks = [geventPool.spawn(Verify.request_and_verify, case) for case in case_list]
         gevent.joinall(tasks)
         for i in tasks:
@@ -739,12 +744,13 @@ class Filter(Process):
 
 
 class Engine(object):
-    def __init__(self, id, url, file, burp, process, browser):
+    def __init__(self, id, url, file, burp, process, coroutine,browser):
         self.id = id
         self.url = url
         self.file = file
         self.burp = burp
         self.process = process
+        self.coroutine=coroutine
         self.browser = browser
 
     def put_queue(self):
@@ -1108,7 +1114,7 @@ class Engine(object):
             else:
                 # traffic genetator
                 print 'Start to request url with urllib2.'
-                traffic_maker = Traffic_generator(self.id, url_list)
+                traffic_maker = Traffic_generator(self.id, url_list,self.coroutine)
                 traffic_maker.start()
                 traffic_maker.join()
                 self.put_queue()
@@ -1129,7 +1135,7 @@ class Engine(object):
                 return openner_result
             else:
                 # verify,async
-                verify_result = Verify.verify_async(case_list)
+                verify_result = Verify.verify_async(case_list,self.coroutine)
                 self.save_analysis()
                 return verify_result
 

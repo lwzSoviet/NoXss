@@ -15,13 +15,14 @@ from util import print_info, save, gen_id, get_domain_from_url
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(prog="start.py",description='scan xss from url or file.',usage='start.py --url=url --save')
-    parser.add_argument('-v','--version', action='version', version='%(prog)s 1.0')
+    parser.add_argument('-v','--version', action='version', version='V1.0-beta')
     parser.add_argument('--check', action='store_true', help='check if browser is installed correctly.')
     parser.add_argument('--url','-u',help='the target site of scan.')
     parser.add_argument('--id',action='store',help='rescan by task id.')
     parser.add_argument('-f','--file',help='scan urls from text file.')
     parser.add_argument('--burp', help='scan from *.xml from burpsuite proxy.')
-    parser.add_argument('--process',help='process amount.')
+    parser.add_argument('--process',help='process number.')
+    parser.add_argument('-c','--coroutine',help='coroutine number.')
     parser.add_argument('--cookie',action='store',help='use cookie.')
     parser.add_argument('--browser',action='store',help='scan with browser,is good at Dom-based xss but slow.')
     parser.add_argument('--save',action='store_true',help='save result to json file.')
@@ -34,6 +35,8 @@ if __name__=="__main__":
     url,file,burp='','',''
     # default use number of cpu-core as processes
     num=cpu_count()
+    # default
+    coroutine=200
     if args.url:
         from check import check_url
         url=args.url
@@ -52,6 +55,8 @@ if __name__=="__main__":
             num=1
     if args.process:
         num=args.process
+    if args.coroutine:
+        coroutine=args.coroutine
     if args.cookie:
         from cookie import save_cookie_ip, is_ip
         if file:
@@ -73,7 +78,7 @@ if __name__=="__main__":
                 exit(0)
         else:
             id=gen_id()
-        engine=Engine(id=id,url=url,file=file,burp=burp,process=num,browser=browser)
+        engine=Engine(id=id,url=url,file=file,burp=burp,process=num,browser=browser,coroutine=coroutine)
         result=engine.start()
         if result:
             save(result,id)
