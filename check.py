@@ -5,7 +5,7 @@
     
     ~~~~~~ 
     @Author  : longwenzhang
-    @Time    : 19-10-29 下午3:46
+    @Time    : 19-10-29   3:46
 """
 import urllib2
 

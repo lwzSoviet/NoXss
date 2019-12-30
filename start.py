@@ -5,7 +5,7 @@
     
     ~~~~~~ 
     @Author  : longwenzhang
-    @Time    : 19-10-9 上午10:13
+    @Time    : 19-10-9  10:13
 """
 import argparse
 from multiprocessing import cpu_count
@@ -21,8 +21,8 @@ if __name__=="__main__":
     parser.add_argument('--id',action='store',help='rescan by task id.')
     parser.add_argument('-f','--file',help='scan urls from text file.')
     parser.add_argument('--burp', help='scan from *.xml from burpsuite proxy.')
-    parser.add_argument('--process',help='process number.')
-    parser.add_argument('-c','--coroutine',help='coroutine number.')
+    parser.add_argument('--process',type=int,help='process number.')
+    parser.add_argument('-c','--coroutine',type=int,help='coroutine number.')
     parser.add_argument('--cookie',action='store',help='use cookie.')
     parser.add_argument('--browser',action='store',help='scan with browser,is good at Dom-based xss but slow.')
     parser.add_argument('--save',action='store_true',help='save result to json file.')

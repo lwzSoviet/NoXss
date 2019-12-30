@@ -5,7 +5,7 @@
     
     ~~~~~~ 
     @Author  : longwenzhang
-    @Time    : 19-10-9 上午10:28
+    @Time    : 19-10-9  10:28
 """
 import os
 from config import BASE_DIR

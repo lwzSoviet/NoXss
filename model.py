@@ -5,7 +5,7 @@
 
     ~~~~~~
     @Author  : longwenzhang
-    @Time    : 19-8-19 下午3:13
+    @Time    : 19-8-19   3:13
 """
 import json
 
