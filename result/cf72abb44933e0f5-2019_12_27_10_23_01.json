@@ -1,1 +1,1 @@
-{"Reflected XSS": [["https://716838.com/?proxyAccount=xssjs%22%3B&shareName=duhxams", "GET$$$$$$https://716838.com/?proxyAccount=xssjs%22%3B&shareName=duhxams$$$$$$$$$$$$proxyAccount$$$$$$43527"], ["https://716838.com/?proxyAccount=43527&shareName=xssjs%22%3B", "GET$$$$$$https://716838.com/?proxyAccount=43527&shareName=xssjs%22%3B$$$$$$$$$$$$shareName$$$$$$duhxams"]]}
+This is a test.
