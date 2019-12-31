@@ -30,6 +30,55 @@ proxy_info={'host':'127.0.0.1',
             }
 proxy_support=urllib2.ProxyHandler({'http':'http://%(host)s:%(port)d'%proxy_info})
 
+def which_type(character):
+    if re.search(r'\d', character):
+        return 'd'
+    elif re.search(r'[a-zA-Z]', character):
+        return 's'
+    else:
+        return 'm'
+
+def get_api(url):
+    path = url.split('?', 1)[0]
+    # format the path
+    # /123.html?a=1,
+    paths = path.split('/')
+    if len(paths) > 4:
+        file_name = paths[-1]
+        if file_name == '':
+            file_name = paths[-2]
+        if file_name:
+            name_format = ''
+            if '.' in file_name:
+                name, ext = file_name.split('.')[0], file_name.split('.')[1]
+                # if len(name)>10:
+                for i in name:
+                    type = which_type(i)
+                    name_format += type
+                # only 'd',format length
+                if 's' not in name_format and 'm' not in name_format:
+                    name_format = 'd'
+                name_format += ext
+                paths.pop()
+                path = '/'.join(paths) + '/' + name_format
+            else:
+                for i in file_name:
+                    type = which_type(i)
+                    name_format += type
+                # only 'd',format length
+                if 's' not in name_format and 'm' not in name_format:
+                    name_format = 'd'
+                paths.pop()
+                path = '/'.join(paths) + '/' + name_format
+    params = url.split('?', 1)[1]
+    params_key_list = [i.split('=', 1)[0] for i in params.split('&')]
+    # sort by first character's ascii
+    params_key_list.sort()
+    # Method and path is joined with @@@, params's name is joined with '$$$'
+    api = '@@@'.join([path, '$$$'.join(params_key_list)])
+    api = api.strip('/')
+    return api
+
 def change_by_param(url, param, tovalue):
     """
     Change the's param's value to tovalue, only support GET.
