@@ -24,8 +24,9 @@ from selenium.common.exceptions import TimeoutException, UnexpectedAlertPresentE
 from config import TRAFFIC_DIR, REQUEST_ERROR, REDIRECT, MULTIPART
 from cookie import get_cookie
 from model import Case, HttpRequest, HttpResponse
-from util import functimeout, Func_timeout_error, change_by_param, list2dict, print_info, chrome, phantomjs, getResponseHeaders, check_type, add_cookie, \
-    get_domain_from_url, print_warn, dict2str, str2dict, divide_list,make_request, gen_poc
+from util import functimeout, Func_timeout_error, change_by_param, list2dict, print_info, chrome, phantomjs, \
+    getResponseHeaders, check_type, add_cookie, \
+    get_domain_from_url, print_warn, dict2str, str2dict, divide_list, make_request, gen_poc, get_api
 import gevent
 from gevent import pool
 from socket import error as SocketError
@@ -54,6 +55,8 @@ traffic_queue = manager.Queue()
 traffic_list = manager.list()
 # save reflect for analyzing
 reflect_list = manager.list()
+# filter
+api_list = manager.list()
 
 class Traffic_generator(Process):
     DEFAULT_HEADER = {
@@ -706,6 +709,21 @@ class Render(Process):
         # quit browser.
         browser.quit()
 
+def url_filter(url):
+    if '?' not in url:
+        return False
+    # filter static URL
+    if static_reg.search(url):
+        return False
+    else:
+        api = get_api(url)
+        # check if the api is exists
+        if api in api_list:
+            return False
+        else:
+            api_list.append(api)
+            return url
+
 class Engine(object):
     def __init__(self, id, url, file, burp, process, coroutine,browser):
         self.id = id
@@ -844,78 +862,12 @@ class Engine(object):
             with open(filtered_path)as f:
                 filtered = f.read().split('\n')
                 return filtered
-        # api_list = []
-        api_list=manager.list()
-        def which_type(character):
-            if re.search(r'\d', character):
-                return 'd'
-            elif re.search(r'[a-zA-Z]', character):
-                return 's'
-            else:
-                return 'm'
-
-        def get_api(url):
-            path = url.split('?', 1)[0]
-            # format the path
-            # /123.html?a=1,
-            paths = path.split('/')
-            if len(paths) > 4:
-                file_name = paths[-1]
-                if file_name == '':
-                    file_name = paths[-2]
-                if file_name:
-                    name_format = ''
-                    if '.' in file_name:
-                        name, ext = file_name.split('.')[0], file_name.split('.')[1]
-                        # if len(name)>10:
-                        for i in name:
-                            type = which_type(i)
-                            name_format += type
-                        # only 'd',format length
-                        if 's' not in name_format and 'm' not in name_format:
-                            name_format='d'
-                        name_format += ext
-                        paths.pop()
-                        path = '/'.join(paths) + '/' + name_format
-                    else:
-                        for i in file_name:
-                            type = which_type(i)
-                            name_format += type
-                        # only 'd',format length
-                        if 's' not in name_format and 'm' not in name_format:
-                            name_format='d'
-                        paths.pop()
-                        path = '/'.join(paths) + '/' + name_format
-            params = url.split('?', 1)[1]
-            params_key_list = [i.split('=', 1)[0] for i in params.split('&')]
-            # sort by first character's ascii
-            params_key_list.sort()
-            # Method and path is joined with @@@, params's name is joined with '$$$'
-            api = '@@@'.join([path, '$$$'.join(params_key_list)])
-            api = api.strip('/')
-            return api
-
-        def filter(url):
-            if '?' not in url:
-                return False
-            # filter static URL
-            if static_reg.search(url):
-                return False
-            else:
-                api = get_api(url)
-                # check if the api is exists
-                if api in api_list:
-                    return False
-                else:
-                    api_list.append(api)
-                    return url
-
         filtered = []
         # result = map(filter, url_list)
         from multiprocessing import cpu_count
         from multiprocessing.pool import Pool
         p=Pool(cpu_count())
-        result=p.map(filter,url_list)
+        result=p.map(url_filter,url_list)
         for i in result:
             if isinstance(i, str):
                 filtered.append(i)
