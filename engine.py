@@ -725,7 +725,7 @@ def url_filter(url):
             return url
 
 class Engine(object):
-    def __init__(self, id, url, file, burp, process, coroutine,browser):
+    def __init__(self, id, url, file, burp, process, coroutine,browser,filter):
         self.id = id
         self.url = url
         self.file = file
@@ -733,6 +733,7 @@ class Engine(object):
         self.process = process
         self.coroutine=coroutine
         self.browser = browser
+        self.filter=filter
 
     def put_queue(self):
         traffic_path = []
@@ -971,6 +972,8 @@ class Engine(object):
                             if i:
                                 url_list.append(i)
                         url_list = self.deduplicate(url_list)
+                        if self.filter:
+                            exit(0)
                         # test 10000 urls
                         # url_list = url_list[:100]
                 else:

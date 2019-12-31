@@ -24,6 +24,7 @@ if __name__=="__main__":
     parser.add_argument('--process',type=int,help='process number.')
     parser.add_argument('-c','--coroutine',type=int,help='coroutine number.')
     parser.add_argument('--cookie',action='store',help='use cookie.')
+    parser.add_argument('--filter', action='store_true', help='filter urls when use --file.')
     parser.add_argument('--browser',action='store',help='scan with browser,is good at Dom-based xss but slow.')
     parser.add_argument('--save',action='store_true',help='save result to json file.')
     banner()
@@ -33,6 +34,7 @@ if __name__=="__main__":
         check_install()
     # default
     url,file,burp='','',''
+    filter=False
     # default use number of cpu-core as processes
     num=cpu_count()
     # default
@@ -70,7 +72,7 @@ if __name__=="__main__":
         else:
             from cookie import save_cookie
             save_cookie(args.cookie, domain)
-    if url or file or burp or args.id:
+    if url or file or burp or args.id or args.filter:
         if args.id:
             id=args.id
             if not Engine.is_scanned(id):
@@ -78,7 +80,7 @@ if __name__=="__main__":
                 exit(0)
         else:
             id=gen_id()
-        engine=Engine(id=id,url=url,file=file,burp=burp,process=num,browser=browser,coroutine=coroutine)
+        engine=Engine(id=id,url=url,file=file,burp=burp,process=num,browser=browser,coroutine=coroutine,filter=filter)
         result=engine.start()
         if result:
             save(result,id)
