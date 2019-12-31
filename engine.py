@@ -39,7 +39,9 @@ except ImportError, e:
 #     else:
 #         return getattr, (m.im_self, m.im_func.func_name)
 
-
+static_reg = re.compile(r'\.html$|\.htm$|\.shtml$|\.css$|\.png$|\.js$|\.dpg$|\.jpg$|\.svg$|\.jpeg$|'
+                            r'\.gif$|\.webp$|\.ico$|\.woff$|\.ttf$|css\?|js\?|jpg\?|png\?|woff\?v='
+                            r'|woff2\?v=|ttf\?|woff\?|woff2$|html\?v=|ico$')
 burp_traffic = []
 manager = Manager()
 case_list = manager.list()
@@ -704,45 +706,6 @@ class Render(Process):
         # quit browser.
         browser.quit()
 
-
-class Filter(Process):
-    static_reg = re.compile(r'\.html$|\.htm$|\.shtml$|\.css$|\.png$|\.js$|\.dpg$|\.jpg$|\.svg$|\.jpeg$|'
-                            r'\.gif$|\.webp$|\.ico$|\.woff$|\.ttf$|css\?|js\?|jpg\?|png\?|woff\?v='
-                            r'|woff2\?v=|ttf\?|woff\?|woff2$|html\?v=|ico$')
-
-    def __init__(self, url_list):
-        Process.__init__(self)
-        self.url_list = url_list
-
-    def get_api(self, url):
-        path = url.split('?', 1)[0]
-        params = url.split('?', 1)[1]
-        params_key_tup = (i.split('=', 1)[0] for i in params.split('&'))
-        # Method and path is joined with @@@, params's name is joined with '$$$'
-        api = '@@@'.join([path, '$$$'.join(params_key_tup)])
-        api = api.strip('/')
-        return api
-
-    def run(self, ):
-        for url in self.url_list:
-            if '?' not in url:
-                continue
-            # filter static URL
-            if self.static_reg.search(url):
-                continue
-            else:
-                i = 1
-                i += 1
-                # api = self.get_api(url)
-                # check if the api is existing
-                # if api in api_list:
-                #     continue
-                # else:
-                #     api_list.append(api)
-                #     filtered.append(url)
-                # filtered.append(url)
-
-
 class Engine(object):
     def __init__(self, id, url, file, burp, process, coroutine,browser):
         self.id = id
@@ -798,7 +761,7 @@ class Engine(object):
                         if child2.tag == 'url':
                             url = child2.text
                             # static url in burp
-                            if Filter.static_reg.search(url):
+                            if static_reg.search(url):
                                 break
                         if child2.tag == 'status':
                             code = child2.text
@@ -834,7 +797,7 @@ class Engine(object):
                     if request and response:
                         if request.method == 'GET' and '?' in request.url:
                             # filter static URL
-                            if not Filter.static_reg.search(url):
+                            if not static_reg.search(url):
                                 burp_traffic.append((request, response))
                                 traffic_queue.put((request, response))
                         elif request.method == 'POST' and request.body:
@@ -881,8 +844,8 @@ class Engine(object):
             with open(filtered_path)as f:
                 filtered = f.read().split('\n')
                 return filtered
-        api_list = []
-
+        # api_list = []
+        api_list=manager.list()
         def which_type(character):
             if re.search(r'\d', character):
                 return 'd'
@@ -936,7 +899,7 @@ class Engine(object):
             if '?' not in url:
                 return False
             # filter static URL
-            if Filter.static_reg.search(url):
+            if static_reg.search(url):
                 return False
             else:
                 api = get_api(url)
@@ -948,7 +911,11 @@ class Engine(object):
                     return url
 
         filtered = []
-        result = map(filter, url_list)
+        # result = map(filter, url_list)
+        from multiprocessing import cpu_count
+        from multiprocessing.pool import Pool
+        p=Pool(cpu_count())
+        result=p.map(filter,url_list)
         for i in result:
             if isinstance(i, str):
                 filtered.append(i)
@@ -1014,39 +981,6 @@ class Engine(object):
         self.save_multipart()
         self.save_redirect()
         self.save_request_exception()
-
-    def multideduplicate(self, url_list):
-        """
-        Multiprocess deduplicate.
-        :param url_list:
-        :return:
-        """
-        print 'Start to multi-deduplicate for all urls.'
-        filter_tasks = self.get_filter_task(url_list)
-        for i in filter_tasks:
-            i.start()
-        for i in filter_tasks:
-            i.join()
-
-    def get_filter_task(self, url_list):
-        filter_task = []
-        i = len(url_list)
-        k = 0
-        if i > self.process:
-            j = i / self.process
-            for i in range(self.process):
-                if i == self.process - 1:
-                    urls = url_list[k:]
-                else:
-                    urls = url_list[k:j * (i + 1)]
-                    k = j * (i + 1)
-                t = Filter(urls)
-                filter_task.append(t)
-        else:
-            urls = url_list
-            t = Filter(urls)
-            filter_task.append(t)
-        return filter_task
 
     def urldecode(self, url_list):
         for i in range(len(url_list)):
