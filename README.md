@@ -100,7 +100,7 @@ Some xss is difficult to scan.NoXss will save some files in traffic/ for analysi
 + *.error(some error happened such as timeout,connection reset,etc.)
 + *.multipart(when request is multupart-formed,not easy to scan)
 # Example
-As you see in [Screenshot](https://github.com/lwzSoviet/NoXss#screenshot),the poc is `https://716838.com/?proxyAccount=xssjs%22%3B&shareName=duhxams`,That means use the payload `xssjs%22%3B` in param "proxyAccount":  
+As you see in [Screenshot](https://github.com/lwzSoviet/NoXss#screenshot),the poc is `https://xxx/?proxyAccount=xssjs%22%3B&shareName=duhxams`,That means use the payload `xssjs%22%3B` in param "proxyAccount":  
 ![poc](https://github.com/lwzSoviet/download/blob/master/images/poc.png)  
 Then you can end the double qoutes use payload `xssjs";alert(1);//`.The final exploit is:  
-`https://716838.com/?proxyAccount=xssjs";alert(1);//&shareName=duhxams`  
+`https://xxx.com/?proxyAccount=xssjs";alert(1);//&shareName=duhxams`  
