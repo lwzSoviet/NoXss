@@ -48,6 +48,8 @@ if __name__=="__main__":
         file=args.file
     if args.burp:
         burp=args.burp
+    if args.filter:
+        filter=args.filter
     browser=''
     if args.browser:
         browser=args.browser
