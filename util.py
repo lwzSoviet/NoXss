@@ -11,6 +11,7 @@ import datetime
 import json
 import os
 import re
+import shutil
 import signal
 import urllib
 import urllib2
@@ -20,7 +21,7 @@ from urllib2 import URLError
 from prettytable import PrettyTable
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
-from config import RESULT_DIR, REQUEST_ERROR, REDIRECT
+from config import RESULT_DIR, REQUEST_ERROR, REDIRECT, TRAFFIC_DIR
 from cookie import get_cookie, get_cookie_ip, is_ip, get_cookies_list
 from httplib import BadStatusLine
 from socket import  error as SocketError
@@ -462,6 +463,19 @@ def functimeout(maxtime):
             return result
         return inner
     return wrap
+
+def clear(id):
+    traffic_path = []
+    files = os.listdir(TRAFFIC_DIR)
+    for i in files:
+        if re.search(id + '.traffic\d*', i):
+            traffic_path.append(os.path.join(TRAFFIC_DIR, i))
+    if traffic_path:
+        for i in traffic_path:
+            try:
+                os.remove(i)
+            except Exception,e:
+                print e
 
 def print_warn(msg):
     print '\033[1;31m{}\033[0m'.format(msg)

@@ -18,11 +18,13 @@ else
 	while [ $end -lt $line ]
 	do
 		sed -n "$start,$end p" url.filtered>url.slice
-		python start.py --file url.slice
+		# delete traffic files after scanning.
+		python start.py --file url.slice --clear
 		let start+=count
 		let end+=count
 	done
 	sed -n "$start,$line p" url.filtered>url.slice
-	python start.py --file url.slice
+	# delete traffic files after scanning.
+	python start.py --file url.slice --clear
 	cat urls.slice
 fi

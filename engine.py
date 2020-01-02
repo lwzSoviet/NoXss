@@ -893,7 +893,7 @@ class Engine(object):
 
         :param traffic_obj_list:
         :param id: task id
-        :param piece: default 3000
+        :param piece: default 3000 per piece
         :return:
         """
         traffic_path = Engine.get_traffic_path(id)
@@ -971,7 +971,8 @@ class Engine(object):
                         for i in temp:
                             if i:
                                 url_list.append(i)
-                        url_list = self.deduplicate(url_list)
+                        if not self.file.endswith('.slice'):
+                            url_list = self.deduplicate(url_list)
                         if self.filter:
                             exit(0)
                         # test 10000 urls
