@@ -89,5 +89,8 @@ if __name__=="__main__":
             save(result,id)
         else:
             print_info('No xss found!')
+        if args.clear:
+            from util import clear
+            clear(id)
     else:
         print 'error: missing a mandatory option (--url, --file, --burp, --id)!'
