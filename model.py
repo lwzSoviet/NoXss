@@ -80,10 +80,6 @@ class HttpResponse():
                 setcookie_list.append(resp_header_value)
         return setcookie_list
 
-    def get_resp_header(self,header_name):
-        if header_name in self.headers.keys():
-            return self.headers[header_name]
-
     def __str__(self):
         return self.code+' '+self.reason+'\n'+HttpRequest.headers2print(self.headers)+'\n'+self.data
 

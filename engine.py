@@ -26,7 +26,7 @@ from cookie import get_cookie
 from model import Case, HttpRequest, HttpResponse
 from util import functimeout, Func_timeout_error, change_by_param, list2dict, print_info, chrome, phantomjs, \
     getResponseHeaders, check_type, add_cookie, \
-    get_domain_from_url, print_warn, dict2str, str2dict, divide_list, make_request, gen_poc, get_api
+    get_domain_from_url, print_warn, divide_list, make_request, gen_poc, get_api
 import gevent
 from gevent import pool
 from socket import error as SocketError
@@ -647,16 +647,16 @@ class Render(Process):
         if self.browser == 'chrome':
             request = HttpRequest(method='GET', url=url, headers=Traffic_generator.DEFAULT_HEADER, body='')
             if response_headers is None:
-                response_headers = {}
+                # default content-type is text/html
+                response_headers = {'Content-Type':'text/html'}
             response = HttpResponse(code='200', reason='OK', headers=response_headers,
                                     data=page_source)
             return (request, response)
-        # pickled error when phantomjs,the headers must be str
         elif self.browser == 'phantomjs':
-            request = HttpRequest(method='GET', url=url, headers=dict2str(Traffic_generator.DEFAULT_HEADER), body='')
+            request = HttpRequest(method='GET', url=url, headers=Traffic_generator.DEFAULT_HEADER, body='')
             if response_headers is None:
-                response_headers = {}
-            response = HttpResponse(code='200', reason='OK', headers=dict2str(response_headers),
+                response_headers = {'Content-Type':'text/html'}
+            response = HttpResponse(code='200', reason='OK', headers=response_headers,
                                     data=page_source)
             return (request, response)
 
@@ -995,10 +995,6 @@ class Engine(object):
                 for i in range(len(traffic_list)):
                     request = traffic_list[i][0]
                     response = traffic_list[i][1]
-                    # change headers(str) to headers(dict) when use phantomjs
-                    if self.browser == 'phantomjs':
-                        request.headers = str2dict(request.headers)
-                        response.headers = str2dict(response.headers)
                     traffic_queue.put((request, response))
                 self.send_end_sig()
             else:
