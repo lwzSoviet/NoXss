@@ -330,8 +330,9 @@ def getResponseHeaders(type,browser):
     if type=='phantomjs':
         try:
             har = json.loads(browser.get_log('har')[0]['message'])
-            return dict(
-                [(header["name"], header["value"]) for header in har['log']['entries'][0]['response']["headers"]])
+            for entry in har['log']['entries']:
+                if entry['request']['url']==browser.current_url:
+                    return dict([(header["name"], header["value"]) for header in entry['response']["headers"]])
         except:
             pass
     elif type=='chrome':
