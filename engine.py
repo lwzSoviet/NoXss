@@ -646,7 +646,7 @@ class Render(Process):
     def gen_traffic(self, url, page_source, response_headers):
         if self.browser == 'chrome':
             request = HttpRequest(method='GET', url=url, headers=Traffic_generator.DEFAULT_HEADER, body='')
-            if response_headers is None:
+            if not response_headers:
                 # default content-type is text/html
                 response_headers = {'Content-Type':'text/html'}
             response = HttpResponse(code='200', reason='OK', headers=response_headers,
@@ -654,7 +654,7 @@ class Render(Process):
             return (request, response)
         elif self.browser == 'phantomjs':
             request = HttpRequest(method='GET', url=url, headers=Traffic_generator.DEFAULT_HEADER, body='')
-            if response_headers is None:
+            if not response_headers:
                 response_headers = {'Content-Type':'text/html'}
             response = HttpResponse(code='200', reason='OK', headers=response_headers,
                                     data=page_source)

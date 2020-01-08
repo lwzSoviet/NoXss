@@ -332,8 +332,8 @@ def getResponseHeaders(type,browser):
             har = json.loads(browser.get_log('har')[0]['message'])
             return dict(
                 [(header["name"], header["value"]) for header in har['log']['entries'][0]['response']["headers"]])
-        except Exception:
-            return None
+        except:
+            pass
     elif type=='chrome':
         for responseReceived in browser.get_log('performance'):
             try:
@@ -341,8 +341,8 @@ def getResponseHeaders(type,browser):
                 if response['url'] == browser.current_url:
                     temp=response['headers']
                     return temp
-            except Exception:
-                return None
+            except:
+                pass
 
 def getResponseStatus(type,browser):
     if type=='phantomjs':
