@@ -74,7 +74,7 @@ python start.py --file file --filter
 **--process**&emsp;number of process.  
 **--coroutine**&emsp;number of coroutine.    
 **--cookie**&emsp;use cookie.  
-**--filter**&emsp;filter urls.
+**--filter**&emsp;filter urls.  
 **--browser**&emsp;use browser(chrome,chrome-headless or phantomjs) to scan,it's good at DOM-based xss but slow.  
 **--save**&emsp;save results to ./result/id.json.  
 **--clear**&emsp;delete traffic files after scanning.
