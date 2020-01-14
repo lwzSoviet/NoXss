@@ -61,6 +61,7 @@ Browser:Phantomjs or Chrome
 ```
 python start.py --url url --save
 python start.py --url url --cookie cookie --browser chrome --save  
+python start.py --url url --cookie cookie --browser chrome-headless --save  
 python start.py --file ./url.txt --save  
 python start.py --burp ./test.xml --save  
 python start.py --file file --filter
@@ -74,8 +75,9 @@ python start.py --file file --filter
 **--coroutine**&emsp;number of coroutine.    
 **--cookie**&emsp;use cookie.  
 **--filter**&emsp;filter urls.
-**--browser**&emsp;use browser(chrome or phantomjs) to scan,it's good at DOM-based xss but slow.  
-**--save**&emsp;save results to ./result/id.json.
+**--browser**&emsp;use browser(chrome,chrome-headless or phantomjs) to scan,it's good at DOM-based xss but slow.  
+**--save**&emsp;save results to ./result/id.json.  
+**--clear**&emsp;delete traffic files after scanning.
 ### How to scan data from Burpsuite
 In Proxy,"Save items" ==> "test.xml"  
 ![s3](https://github.com/lwzSoviet/download/blob/master/images/s3.png)  

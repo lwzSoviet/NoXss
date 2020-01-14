@@ -221,6 +221,7 @@ class Detector():
         js_reg = re.compile('<script.*?>.*?' + re.escape(value) + '.*?</script>', re.S)
         html_reg = re.compile('<.*?>.*?' + re.escape(value) + '.*?</[a-zA-Z]{1,10}?>', re.S)
         tag_reg = re.compile('=\"' + re.escape(value) + '\"|=\'' + re.escape(value) + '\'', re.M)
+        # function login(a,b){...};login(param1,param2); param1 and param2 are controllable
         func_reg = re.compile('\\(.*?' + re.escape(value) + '.*?\\)')
         reg_list = [js_reg, html_reg, tag_reg, func_reg]
         return reg_list
@@ -380,8 +381,8 @@ class Scan(Process):
         ('jssq', 'xssjs\';', '<script.*?xssjs\';.*?</script>'),
         ('jsnq', 'xssjs;', '<script.*?xssjs;.*?</script>'),
         ('tag', 'xsstag"', '=xsstag".*?"'),
-        # reflected in  js code's comment
-        # reflected in html's comment
+        # reflected in  js code's comment,less
+        # reflected in html's comment,less
         # reflected in function call
     )
 
@@ -518,6 +519,8 @@ class Verify():
             # restart
             if self.browser == 'chrome':
                 browser = chrome()
+            elif self.browser=='chrome-headless':
+                browser=chrome(headless=True)
             else:
                 browser = phantomjs()
             # add cookie, the scope is case_list[0].url's top-domain
@@ -537,6 +540,8 @@ class Verify():
             blocked_urls = []
             if self.browser == 'chrome':
                 browser = chrome()
+            elif self.browser=='chrome-headless':
+                browser=chrome(headless=True)
             else:
                 browser = phantomjs()
             # add cookie, the scope is case_list[0].url's top-domain
@@ -628,6 +633,8 @@ class Render(Process):
         # restart
         if self.browser == 'chrome':
             browser = chrome()
+        elif self.browser=='chrome-headless':
+            browser=chrome(headless=True)
         else:
             browser = phantomjs()
         # add cookie, the scope is case_list[0].url's top-domain
@@ -644,7 +651,7 @@ class Render(Process):
             return browser
 
     def gen_traffic(self, url, page_source, response_headers):
-        if self.browser == 'chrome':
+        if self.browser == 'chrome' or self.browser=='chrome-headless':
             request = HttpRequest(method='GET', url=url, headers=Traffic_generator.DEFAULT_HEADER, body='')
             if not response_headers:
                 # default content-type is text/html
@@ -664,6 +671,8 @@ class Render(Process):
         blocked_urls = []
         if self.browser == 'chrome':
             browser = chrome()
+        elif self.browser=='chrome-headless':
+            browser=chrome(headless=True)
         else:
             browser = phantomjs()
         # add cookie, the scope is url_list[0]'s top-domain
