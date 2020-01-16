@@ -262,7 +262,6 @@ class Detector():
                         if not re.search('<html.*?</html>', response_data, re.S):
                             position.append('html')
                         if re.search(js_reg, response_data):
-                            position.append('js')
                             # check value's type,str or number
                             type = check_type(value)
                             bs = BeautifulSoup(response_data, 'lxml')
@@ -322,6 +321,9 @@ class Detector():
         else:
             pass
             # print '30x redirect'
+        # 'js' include 'jsdq','jssq' and 'jsnq'
+        if 'jsdq' in position or 'jssq' in position or 'jsnq' in position:
+            position.append('js')
         return position
 
 
@@ -381,7 +383,7 @@ class Scan(Process):
         ('jsdq', 'xssjs";', '<script.*?xssjs";.*?</script>'),
         ('jssq', 'xssjs\';', '<script.*?xssjs\';.*?</script>'),
         ('jsnq', 'xssjs;', '<script.*?xssjs;.*?</script>'),
-        ('tag', 'xsstag"', '=xsstag".*?"'),
+        ('tag', 'xsstag"', '="xsstag".*?"'),
         # reflected in  js code's comment,less
         # reflected in html's comment,less
         # reflected in function call
