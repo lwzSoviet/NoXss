@@ -383,7 +383,7 @@ class Scan(Process):
         ('jsdq', 'xssjs";', '<script.*?xssjs";.*?</script>'),
         ('jssq', 'xssjs\';', '<script.*?xssjs\';.*?</script>'),
         ('jsnq', 'xssjs;', '<script.*?xssjs;.*?</script>'),
-        ('tag', 'xsstag"', '="xsstag".*?"'),
+        ('tag', 'xsstag"', '="xsstag""|="xsstag" "'),
         # reflected in  js code's comment,less
         # reflected in html's comment,less
         # reflected in function call
