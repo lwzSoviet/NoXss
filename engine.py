@@ -262,6 +262,7 @@ class Detector():
                         if not re.search('<html.*?</html>', response_data, re.S):
                             position.append('html')
                         if re.search(js_reg, response_data):
+                            position.append('js')
                             # check value's type,str or number
                             type = check_type(value)
                             bs = BeautifulSoup(response_data, 'lxml')
@@ -384,6 +385,9 @@ class Scan(Process):
         # reflected in  js code's comment,less
         # reflected in html's comment,less
         # reflected in function call
+        # reflected in js code,test </script>
+        ('js','xss</script>','<script.*?xss</script>'),
+
     )
 
     def __init__(self):
@@ -435,10 +439,8 @@ class Scan(Process):
                         if rtn and isinstance(rtn, list):
                             case_list.extend(rtn)
 
-
 class Verify():
     ERROR_COUNT = 0
-
     @staticmethod
     def verify(response, args):
         match = args[1]
