@@ -911,7 +911,11 @@ class Engine(object):
         """
         traffic_path = Engine.get_traffic_path(id)
         if len(traffic_obj_list) > 0:
-            saved_traffic_list = [i for i in traffic_obj_list]
+            saved_traffic_list=[]
+            for i in traffic_obj_list:
+                # response.data max size limits 10M
+                if len(i[1].data)<5000000:
+                    saved_traffic_list.append(i)
             # slice traffic if too large
             if len(saved_traffic_list) > piece:
                 traffic_divided_path = []
