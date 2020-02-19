@@ -492,6 +492,10 @@ def total_result():
                 t=json.load(f)
                 if t:
                     for k,v in t.items():
+                        if k in result_total.keys():
+                            result_total[k].extend(v)
+                        else:
+                            result_total[k]=[]
                         result_total[k]=v
         if result_total:
             save(result_total,'total')
