@@ -496,7 +496,7 @@ def total_result():
                             for j in v:
                                 result_total.append((k,j[1],j[2]))
         if result_total:
-            with open('')
+            save(result_total,'total')
 
 if __name__=="__main__":
     pass
