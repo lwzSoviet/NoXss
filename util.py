@@ -494,7 +494,7 @@ def total_result():
                     for k,v in t.items():
                         if v:
                             for j in v:
-                                result_total.append((k,j[1],j[2]))
+                                result_total.append((k,j[0],j[1]))
         if result_total:
             save(result_total,'total')
 
