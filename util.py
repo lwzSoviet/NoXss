@@ -485,20 +485,18 @@ def print_info(msg):
 def total_result():
     files=os.listdir(RESULT_DIR)
     if files:
-        result_total={}
+        result_total=[]
         for i in files:
             path = os.path.join(RESULT_DIR, i)
             with open(path) as f:
                 t=json.load(f)
                 if t:
                     for k,v in t.items():
-                        if k in result_total.keys():
-                            result_total[k].extend(v)
-                        else:
-                            result_total[k]=[]
-                        result_total[k]=v
+                        if v:
+                            for j in v:
+                                result_total.append((k,j[1],j[2]))
         if result_total:
-            save(result_total,'total')
+            with open('')
 
 if __name__=="__main__":
     pass
