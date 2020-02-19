@@ -32,6 +32,7 @@ NoXss is a cross-site script vulnerability scanner supported reflected xss and d
 ├── util.py
 ├── README.md
 ├── banner.py
+├── batchjob.sh
 ├── requirements.txt
 ├── result
 │   └── 49226b2cbc77b71b-2019_10_29_11_24_44.json   #result
@@ -65,6 +66,7 @@ python start.py --url url --cookie cookie --browser chrome-headless --save
 python start.py --file ./url.txt --save  
 python start.py --burp ./test.xml --save  
 python start.py --file file --filter
+./batchjob.sh (scan 10000 urls every time to reduce the memory pressure.)
 ```
 ### Options    
 **--url**&emsp;scan from url.  

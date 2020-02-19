@@ -482,5 +482,20 @@ def print_warn(msg):
 def print_info(msg):
     print '\033[1;32m{}\033[0m'.format(msg)
 
+def total_result():
+    files=os.listdir(RESULT_DIR)
+    if files:
+        result_total={}
+        for i in files:
+            path = os.path.join(RESULT_DIR, i)
+            with open(path) as f:
+                t=json.load(f)
+                if t:
+                    for k,v in t.items():
+                        result_total[k]=v
+        if result_total:
+            save(result_total,'total')
+
 if __name__=="__main__":
     pass
+    total_result()
