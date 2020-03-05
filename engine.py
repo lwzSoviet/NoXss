@@ -20,7 +20,7 @@ import re
 import urlparse
 from ssl import CertificateError
 from xml.etree import cElementTree
-from selenium.common.exceptions import TimeoutException, UnexpectedAlertPresentException
+from selenium.common.exceptions import TimeoutException, UnexpectedAlertPresentException, WebDriverException
 from config import TRAFFIC_DIR, REQUEST_ERROR, REDIRECT, MULTIPART
 from cookie import get_cookie
 from model import Case, HttpRequest, HttpResponse
@@ -706,6 +706,8 @@ class Render(Process):
                     path = '/'.join(splited)
                     blocked_urls.append(path)
                 except UnicodeDecodeError:
+                    pass
+                except WebDriverException:
                     pass
                 else:
                     try:
