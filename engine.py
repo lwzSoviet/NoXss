@@ -17,6 +17,7 @@ from httplib import BadStatusLine
 from multiprocessing import Process, Manager
 import json
 import re
+from log import LOGGER
 import urlparse
 from ssl import CertificateError
 from xml.etree import cElementTree
@@ -24,16 +25,17 @@ from selenium.common.exceptions import TimeoutException, UnexpectedAlertPresentE
 from config import TRAFFIC_DIR, REQUEST_ERROR, REDIRECT, MULTIPART
 from cookie import get_cookie
 from model import Case, HttpRequest, HttpResponse
-from util import functimeout, Func_timeout_error, change_by_param, list2dict, print_info, chrome, phantomjs, \
+from util import functimeout, Func_timeout_error, change_by_param, list2dict, chrome, phantomjs, \
     getResponseHeaders, check_type, add_cookie, \
-    get_domain_from_url, print_warn, divide_list, make_request, gen_poc, get_api
+    get_domain_from_url, divide_list, make_request, gen_poc, get_api
 import gevent
 from gevent import pool
 from socket import error as SocketError
+from httplib import InvalidURL
 try:
     from bs4 import BeautifulSoup
 except ImportError, e:
-    print e
+    LOGGER.warn(e)
 # def _pickle_method(m):
 #     if m.im_self is None:
 #         return getattr, (m.im_class, m.im_func.func_name)
@@ -85,19 +87,15 @@ class Traffic_generator(Process):
                 REQUEST_ERROR.append(('gen_traffic()', url, e.reason))
             except CertificateError:
                 REQUEST_ERROR.append(('gen_traffic()', url, 'ssl.CertificateError'))
-            except ValueError, e:
-                print e
-            except BadStatusLine, e:
-                print e
-            except SocketError, e:
-                print e
+            except (ValueError, BadStatusLine, SocketError, InvalidURL) as e:
+                LOGGER.warn(e)
             else:
                 if resp.url != url:
                     REDIRECT.append(url)
                 try:
                     data = resp.read()
                 except Exception, e:
-                    print e
+                    LOGGER.warn(e)
                 else:
                     resp_headers = resp.headers.headers
                     resp_headers_dict = list2dict(resp_headers)
@@ -140,7 +138,7 @@ class Detector():
         try:
             json_dict = json.loads(json_str)
         except ValueError:
-            print 'Error in detect_json():%s' % json_str
+            LOGGER.warn('Error in detect_json():%s' % json_str)
         else:
             # other type to str
             for k, v in json_dict.items():
@@ -165,7 +163,7 @@ class Detector():
                     result[k] = v
             return result
         else:
-            print 'Can\'t parse body:\n%s' % data
+            LOGGER.info('Can\'t parse body:\n%s' % data)
 
     @staticmethod
     def detect_param(request):
@@ -213,7 +211,7 @@ class Detector():
                         tmp = body.split['=']
                         param_dict = tmp[0], tmp[1]
                 except TypeError:
-                    print 'Json is not valid:%s' % body
+                    LOGGER.warn('Json is not valid:%s' % body)
         return param_dict
 
     @staticmethod
@@ -374,8 +372,7 @@ class Processor():
             try:
                 func()
             except Func_timeout_error,e:
-                print str(e)+self.request.url
-
+                LOGGER.warn(str(e)+self.request.url)
 
 class Scan(Process):
     PAYLOADS = (
@@ -427,10 +424,9 @@ class Scan(Process):
             try:
                 traffic_obj = traffic_queue.get(timeout=3)
             except Empty:
-                print 'traffic_queue is empty!'
+                LOGGER.warn('traffic_queue is empty!')
                 time.sleep(1)
             else:
-                print "Scan-%s,TRAFFIC_QUEUE:%s" % (os.getpid(), traffic_queue.qsize())
                 if traffic_obj == None:
                     break
                 else:
@@ -477,14 +473,14 @@ class Verify():
         args = case.args
         old_param = args[2]
         old_value = args[3]
-        print 'Verify case use:\n%s' % url
+        LOGGER.info('Verify: %s' % url)
         # time out
         with gevent.Timeout(20, False)as t:
             resp = make_request(method, url, headers, body)
             if resp:
                 if Verify.verify(resp, args):
                     poc = gen_poc(method, url, body, old_param, old_value)
-                    print_warn('Found %s in %s' % (vul, poc))
+                    LOGGER.critical('Found cross-site script vulnerability(%s) in %s' % (vul, poc))
                     result = (vul, url, poc)
                     return result
             # count++ when error happened
@@ -508,7 +504,7 @@ class Verify():
         for i in tasks:
             if i.value is not None:
                 result.append(i.value)
-        print_info('Total Verify-Case is: %s, %s error happened.' % (len(case_list), Verify.ERROR_COUNT))
+        LOGGER.info('Total %s verify cases, %s error happened.' % (len(case_list), Verify.ERROR_COUNT))
         return result
 
     class Openner(Process):
@@ -563,7 +559,7 @@ class Verify():
                     try:
                         browser.get(url)
                     except TimeoutException, e:
-                        print e
+                        LOGGER.warn(e)
                         # mark if browser get() exception
                         REQUEST_ERROR.append(('Openner get()', url, 'timeout'))
                         # browser blocked sometimes.
@@ -574,7 +570,7 @@ class Verify():
                             path = '/'.join(splited)
                             blocked_urls.append(path)
                     except BadStatusLine, e:
-                        print e
+                        LOGGER.warn(e)
                         REQUEST_ERROR.append(('Render get()', url, 'BadStatusLine'))
                         splited = url.split('/', 3)
                         path = '/'.join(splited)
@@ -689,7 +685,7 @@ class Render(Process):
                 try:
                     browser.get(url)
                 except TimeoutException, e:
-                    print e
+                    LOGGER.warn(e)
                     # save if browser get() exception
                     REQUEST_ERROR.append(('Render get()', url, 'timeout'))
                     # browser blocks sometimes.
@@ -700,7 +696,7 @@ class Render(Process):
                         path = '/'.join(splited)
                         blocked_urls.append(path)
                 except BadStatusLine, e:
-                    print e
+                    LOGGER.warn(e)
                     REQUEST_ERROR.append(('Render get()', url, 'BadStatusLine'))
                     splited = url.split('/', 3)
                     path = '/'.join(splited)
@@ -757,7 +753,7 @@ class Engine(object):
         for i in traffic_path:
             with open(i)as f:
                 traffic_list = cPickle.load(f)
-                print 'Start to put traffic( used %s) into traffic_queue,Total is %s.' % (i, len(traffic_list))
+                LOGGER.info('Start to put traffic( used %s) into traffic_queue,Total is %s.' % (i, len(traffic_list)))
                 for traffic in traffic_list:
                     traffic_queue.put(traffic)
 
@@ -779,7 +775,7 @@ class Engine(object):
             try:
                 root = ET.fromstring(xmlstr)
             except cElementTree.ParseError,e:
-                print 'Parse burpsuite data error: '+str(e)
+                LOGGER.error('Parse burpsuite data error: '+str(e))
                 exit(0)
             for child in root:
                 if child.tag == 'item':
@@ -809,7 +805,7 @@ class Engine(object):
                                         req_headers[header_key] = header_value
                                 # split header error
                                 except IndexError,e:
-                                    print e
+                                    LOGGER.warn(e)
                             body = req_text.split('\r\n\r\n', 1)[1]
                             request = HttpRequest(method, url, req_headers, body)
                         if child2.tag == 'response':
@@ -841,7 +837,7 @@ class Engine(object):
                                 burp_traffic.append((request, response))
                                 traffic_queue.put((request, response))
         else:
-            print '%s not exists!' % self.burp
+            LOGGER.error('%s not exists!' % self.burp)
 
     @staticmethod
     def get_traffic_path(id):
@@ -869,10 +865,10 @@ class Engine(object):
         return render_task
 
     def deduplicate(self, url_list):
-        print 'Start to deduplicate for all urls.'
+        LOGGER.info('Start to deduplicate for all urls.')
         filtered_path = self.file + '.filtered'
         if os.path.exists(filtered_path):
-            print '%s has been filtered as %s.' % (self.file, filtered_path)
+            LOGGER.info('%s has been filtered as %s.' % (self.file, filtered_path))
             with open(filtered_path)as f:
                 filtered = f.read().split('\n')
                 return filtered
@@ -887,7 +883,7 @@ class Engine(object):
                 filtered.append(i)
         with open(filtered_path, 'w') as f:
             f.write('\n'.join(filtered))
-        print 'Saved filtered urls to %s.' % filtered_path
+        LOGGER.info('Saved filtered urls to %s.' % filtered_path)
         return filtered
 
     def save_reflect(self):
@@ -920,11 +916,11 @@ class Engine(object):
                     traffic_divided_path.append(traffic_path + str(i))
                     with open(traffic_path + str(i), 'w')as traffic_f:
                         cPickle.dump(traffic_divided[i], traffic_f)
-                print_info('Traffic of %s has been divided and saved to %s.' % (id, ','.join(traffic_divided_path)))
+                LOGGER.info('Traffic of %s has been divided and saved to %s.' % (id, ','.join(traffic_divided_path)))
             else:
                 with open(traffic_path, 'w')as traffic_f:
                     cPickle.dump(saved_traffic_list, traffic_f)
-                    print_info('Traffic of %s has been saved to %s.' % (id, traffic_path))
+                    LOGGER.info('Traffic of %s has been saved to %s.' % (id, traffic_path))
 
     def save_request_exception(self):
         if len(REQUEST_ERROR) > 0:
@@ -942,7 +938,7 @@ class Engine(object):
                 cPickle.dump(MULTIPART, f)
 
     def save_analysis(self):
-        print_info('Total multipart is: %s,redirect is: %s,request exception is: %s' % (
+        LOGGER.info('Total multipart is: %s,redirect is: %s,request exception is: %s' % (
         len(MULTIPART), len(REDIRECT), len(REQUEST_ERROR)))
         self.save_multipart()
         self.save_redirect()
@@ -958,15 +954,21 @@ class Engine(object):
     def is_scanned(id):
         files = os.listdir(TRAFFIC_DIR)
         for i in files:
-            if re.search(id + '\.traffic\d', i):
+            if re.search(id + '\.traffic\d*', i):
                 return True
 
     def start(self):
         # check if traffic_path exists.
         if self.is_scanned(self.id):
-            print 'Task %s has been scanned,Rescan.' % self.id
-            self.put_queue()
-            self.send_end_sig()
+            choice=raw_input('Task %s has been scanned, do you want to rescan?(Y/N)' % self.id)
+            if choice == 'Y' or choice == 'y' or re.search('yes',choice,re.I):
+                self.put_queue()
+                self.send_end_sig()
+            elif choice is 'N' or choice is 'n' or re.search('no',choice,re.I):
+                exit(0)
+            else:
+                LOGGER.error('Incorrect choice.')
+                exit(0)
         elif self.burp:
             self.put_burp_to_trafficqueue()
             self.send_end_sig()
@@ -991,13 +993,13 @@ class Engine(object):
                         # test 10000 urls
                         # url_list = url_list[:100]
                 else:
-                    print '%s not exists!' % self.file
+                    LOGGER.error('%s not exists!' % self.file)
                     exit(0)
             # decode
             url_list = self.urldecode(url_list)
             if self.browser:
                 # render
-                print 'Start to request url with %s.' % self.browser
+                LOGGER.info('Start to request url with %s.' % self.browser)
                 render_task = self.get_render_task(url_list)
                 for i in render_task:
                     i.start()
@@ -1012,7 +1014,7 @@ class Engine(object):
                 self.send_end_sig()
             else:
                 # traffic genetator
-                print 'Start to request url with urllib2.'
+                LOGGER.info('Start to request url with urllib2.')
                 traffic_maker = Traffic_generator(self.id, url_list,self.coroutine)
                 traffic_maker.start()
                 traffic_maker.join()

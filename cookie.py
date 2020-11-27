@@ -5,6 +5,7 @@ import os
 import re
 import time
 from config import COOKIE_DIR
+from log import LOGGER
 
 __author__ = 'longwenzhang'
 
@@ -56,7 +57,6 @@ def save_cookie(cookie,domain,expire_time=3600):
 #  save cookie for http://ip/path
 def save_cookie_ip(cookie,ip,expire_time=3600):
     domain_scope=ip
-    print domain_scope
     expire=int(time.time())+expire_time
     with open(os.path.join(COOKIE_DIR,'_'.join([domain_scope,'cookie'])), 'w+')as cookie_file:
         cookie_file.write(cookie + '\n')
@@ -77,10 +77,10 @@ def get_cookie(target_domain,):
                     cookies_text = cookie_file_list[0].strip()
                     return cookies_text
                 else:
-                    print 'Cookie of %s is expired!!!' % domain_scope
+                    LOGGER.warn('Cookie of %s is expired!!!' % domain_scope)
         # cookie not exists
         else:
-            print 'Cookie of %s not exist!!!' % domain_scope
+            pass
 
 # get cookie-ip
 def get_cookie_ip(ip,):
@@ -95,9 +95,9 @@ def get_cookie_ip(ip,):
                 cookies_text = cookie_file_list[0].strip()
                 return cookies_text
             else:
-                print 'Cookie of %s is expired!!!' % domain_scope
+                LOGGER.warn('Cookie of %s is expired!!!' % domain_scope)
     else:
-        print 'Cookie of %s not exist!!!' % domain_scope
+        pass
 
 def try_cookie(domain):
     # try to find cookie from cookie/ and add it to DEFAULT_HEADER

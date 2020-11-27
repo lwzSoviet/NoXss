@@ -11,7 +11,7 @@ import datetime
 import json
 import os
 import re
-import shutil
+from log import LOGGER
 import signal
 import urllib
 import urllib2
@@ -128,18 +128,18 @@ def get_domain_from_url(url):
         try:
             domain = url.split('//', 1)[1].split('/', 1)[0]
         except IndexError, e:
-            print 'Get domain error,%s,%s' % (url, e)
+            LOGGER.warn('Get domain error,%s,%s' % (url, e))
     # http://a.b.com?a=adsd
     elif re.search(r'://.*?\?',url):
         try:
             domain = url.split('//', 1)[1].split('?', 1)[0]
         except IndexError, e:
-            print 'Get domain error,%s,%s' % (url, e)
+            LOGGER.warn('Get domain error,%s,%s' % (url, e))
     elif re.search(r'://.*?',url):
         try:
             domain = url.split('//', 1)[1].split('/', 1)[0]
         except IndexError, e:
-            print 'Get domain error,%s,%s' % (url, e)
+            LOGGER.warn('Get domain error,%s,%s' % (url, e))
     # url is a.b.com/a/b/c, a.b.com, /a/b/c,
     elif re.search(r'/',url):
         value = url.split('/', 1)[0]
@@ -184,9 +184,11 @@ def cookiedict2str(cookie_dict):
 
 class RedirectHandler(urllib2.HTTPRedirectHandler):
     def http_error_301(self, req, fp, code, msg, headers):
-        print 'ignore 301'
+        pass
+        # print 'ignore 301'
     def http_error_302(self, req, fp, code, msg, headers):
-        print 'ignore 302'
+        pass
+        # print 'ignore 302'
 
 def getheader(target_domain):
     # add UA
@@ -261,11 +263,11 @@ def make_request(method,url,headers,body):
         except CertificateError:
             REQUEST_ERROR.append(('make_request()', url, 'ssl.CertificateError'))
         except ValueError, e:
-            print e
+            LOGGER.warn(e)
         except BadStatusLine,e:
-            print e
+            LOGGER.warn(e)
         except SocketError,e:
-            print e
+            LOGGER.warn(e)
     elif method=='POST':
         req = urllib2.Request(url, data=body, headers=headers)
         try:
@@ -278,11 +280,11 @@ def make_request(method,url,headers,body):
         except CertificateError:
             REQUEST_ERROR.append(('make_request()', url, 'ssl.CertificateError'))
         except ValueError, e:
-            print e
+            LOGGER.warn(e)
         except BadStatusLine,e:
-            print e
+            LOGGER.warn(e)
         except SocketError,e:
-            print e
+            LOGGER.warn(e)
 
 def chrome(headless=False):
     # support to get response status and headers
@@ -318,7 +320,7 @@ def add_cookie(browser,url):
     try:
         browser.get(url)
     except Exception, e:
-        print 'First visit Error:%s' % e
+        LOGGER.warn('First visit Error:%s' % e)
     else:
         domain = get_domain_from_url(url)
         cookies_list = get_cookies_list(domain)
@@ -429,13 +431,13 @@ def print_result_table(result):
         try:
             print table
         except UnicodeDecodeError,e:
-            print e
+            LOGGER.warn(e)
 
 def save(result,id):
     result_dict={}
     if result:
         for vul,location,poc in result:
-            print_warn('%s found in: %s\n'%(vul,location))
+            LOGGER.warn('%s found in: %s\n'%(vul,location))
             if vul in result_dict.keys():
                 result_dict[vul].append((location,poc))
             else:
@@ -445,7 +447,7 @@ def save(result,id):
         result_file = os.path.join(RESULT_DIR, id +'-'+ datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + '.json')
         with open(result_file,'w') as json_f:
             json.dump(result_dict, json_f)
-            print_info('The result of %s has been saved to %s'%(id,result_file))
+            LOGGER.info('The result of %s has been saved to %s'%(id,result_file))
 
 class Func_timeout_error(Exception):
     def __str__(self):
@@ -474,13 +476,7 @@ def clear(id):
             try:
                 os.remove(i)
             except Exception,e:
-                print e
-
-def print_warn(msg):
-    print '\033[1;31m{}\033[0m'.format(msg)
-
-def print_info(msg):
-    print '\033[1;32m{}\033[0m'.format(msg)
+                LOGGER.warn(e)
 
 if __name__=="__main__":
     pass

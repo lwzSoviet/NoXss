@@ -7,11 +7,12 @@
     @Author  : longwenzhang
     @Time    : 19-10-9  10:13
 """
+from log import LOGGER
 import argparse
 from multiprocessing import cpu_count
 from banner import banner
 from engine import Engine
-from util import print_info, save, gen_id, get_domain_from_url
+from util import save, gen_id, get_domain_from_url
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(prog="start.py",description='scan xss from url or file.',usage='start.py --url=url --save')
@@ -79,18 +80,23 @@ if __name__=="__main__":
         if args.id:
             id=args.id
             if not Engine.is_scanned(id):
-                print 'Task %s not found,exit.'
+                LOGGER.error('Task %s not found,exit.'%id)
                 exit(0)
         else:
             id=gen_id()
         engine=Engine(id=id,url=url,file=file,burp=burp,process=num,browser=browser,coroutine=coroutine,filter=filter)
-        result=engine.start()
-        if result:
-            save(result,id)
+        try:
+            result=engine.start()
+        except KeyboardInterrupt,e:
+            LOGGER.info(e)
         else:
-            print_info('No xss found!')
-        if args.clear:
-            from util import clear
-            clear(id)
+            if result:
+                save(result, id)
+            else:
+                LOGGER.info('No xss found!')
+            if args.clear:
+                from util import clear
+
+                clear(id)
     else:
-        print 'error: missing a mandatory option (--url, --file, --burp, --id)!'
+        LOGGER.error('error: missing a mandatory option (--url, --file, --burp, --id)!')
